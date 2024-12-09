@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Number Arrangements</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        h1, h2 {
+            text-align: center;
+            color: #ff9800;
+        }
+        table {
+            border-collapse: collapse;
+            width: 60%;
+            margin: 20px auto;
+            background-color: #1e1e1e;
+        }
+        th, td {
+            border: 1px solid #333;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #333;
+            color: #ff9800;
+        }
+        input[type="checkbox"] {
+            transform: scale(1.2);
+        }
+        tr:nth-child(even) {
+            background-color: #2a2a2a;
+        }
+        tr:nth-child(odd) {
+            background-color: #1e1e1e;
+        }
+        tr:hover {
+            background-color: #444;
+        }
+    </style>
+</head>
+<body>
+    <h1>Number Arrangements</h1>
+    <h2 id="count">Calculating...</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Arrangement</th>
+                <th>Check</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            <!-- Rows will be added here by JavaScript -->
+        </tbody>
+    </table>
+    <script>
+        function generateArrangements() {
+            const tableBody = document.getElementById('tableBody');
+            let count = 0; // Counter for the total number of arrangements
+            for (let i = 0; i <= 7; i++) {
+                for (let j = i + 1; j <= 8; j++) {
+                    for (let k = j + 1; k <= 9; k++) {
+                        const row = document.createElement('tr');
+
+                        // Add the number arrangement
+                        const cell1 = document.createElement('td');
+                        cell1.textContent = `${i}${j}${k}`;
+                        row.appendChild(cell1);
+
+                        // Add the checkbox
+                        const cell2 = document.createElement('td');
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.className = 'arrangement-check';
+                        cell2.appendChild(checkbox);
+                        row.appendChild(cell2);
+
+                        tableBody.appendChild(row);
+                        count++;
+                    }
+                }
+            }
+            // Update the count at the top of the page
+            document.getElementById('count').textContent = `Total Permutations: ${count}`;
+        }
+        generateArrangements();
+    </script>
+</body>
+</html>
