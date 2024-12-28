@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FTC Dean's List Mock Interview</title>
+    <script>
+        let questions = [
+            "Describe one example of how you are a leader.", "What leadership style do you find works best for you?",
+            "What advice would you give to a student considering joining a FIRST team?",
+            "Tell me about a problem your team experienced and how you helped solve it."
+        ];
+
+        let currentAnswer = "";
+        let currentQuestion = "";
+        let timer;
+        let timeLeft = 600;
+        let transcript = "";
+        let recognition; // Global variable for speech recognition
+
+        async function startInterview() {
+            document.getElementById("start-button").style.display = "none";
+            document.getElementById("interview-section").style.display = "block";
+            startTimer();
+            askQuestion();
+        }
+
+        function startTimer() {
+            const timerElement = document.getElementById("timer");
+            timer = setInterval(() => {
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    endInterview();
+                    return;
+                }
+                timeLeft--;
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                timerElement.innerText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        function askQuestion() {
+            if (questions.length === 0) {
+                endInterview();
+                return;
+            }
+
+            currentQuestion = questions.shift();
+            document.getElementById("question-display").innerText = currentQuestion;
+            speak(currentQuestion);
+            transcript += `Interviewer: ${currentQuestion}\n`;
+        }
+
+        function nextQuestion() {
+            const answer = currentAnswer.trim();
+            if (answer) {
+                transcript += `Speaker: ${answer}\n`;
+            }
+            currentAnswer = "";
+            document.getElementById("current-answer").innerText = "";
+            askQuestion();
+        }
+
+        function playTone() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.type = 'sine'; // Sine wave
+            oscillator.frequency.setValueAtTime(650, audioContext.currentTime); // 650Hz frequency
+            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime); // Set the volume to 10% of the maximum
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.start(); // Start the tone
+            setTimeout(() => {
+                oscillator.stop(); // Stop the tone after 2 seconds
+            }, 500);
+        }
+
+        function endInterview() {
+            clearInterval(timer);
+            playTone();
+            stopSpeechRecognition(); // Stop recognition explicitly
+            document.getElementById("interview-section").style.display = "none";
+            document.getElementById("end-message").style.display = "block";
+
+            const transcriptElement = document.createElement("pre");
+            transcriptElement.textContent = transcript;
+            document.getElementById("end-message").appendChild(transcriptElement);
+
+            const blob = new Blob([transcript], { type: "text/plain" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "interview_transcript.txt";
+            link.innerText = "Download Transcript";
+            document.getElementById("end-message").appendChild(link);
+        }
+
+        let voices = [];
+
+        function loadVoices() {
+            voices = window.speechSynthesis.getVoices();
+        }
+
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+
+        function speak(text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.pitch = 0.8;  // Lower pitch for a deeper voice
+            utterance.rate = 1;     // Slightly slower rate for better clarity
+
+            // Wait until voices are loaded
+            if (voices.length === 0) {
+                loadVoices();  // Load voices if not loaded yet
+            }
+
+            // Select a male voice (example: English male voice)
+            const maleVoice = voices.find(voice => voice.name.toLowerCase().includes('male') && voice.lang.includes('en'));
+
+            if (maleVoice) {
+                utterance.voice = maleVoice;  // Set the voice to the selected male voice
+            }
+
+            utterance.onstart = () => {
+                document.getElementById("model").classList.add("talking");
+            };
+
+            utterance.onend = () => {
+                document.getElementById("model").classList.remove("talking");
+                startSpeechRecognition();
+            };
+
+            window.speechSynthesis.cancel(); // Ensure no overlapping utterances
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function startSpeechRecognition() {
+            if (!('webkitSpeechRecognition' in window)) {
+                alert("Your browser does not support speech recognition.");
+                return;
+            }
+
+            if (!recognition) {
+                recognition = new webkitSpeechRecognition();
+                recognition.continuous = true; // Keeps the recognition running
+                recognition.interimResults = true;
+
+                recognition.onresult = (event) => {
+                    let interimTranscript = "";
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        if (event.results[i].isFinal) {
+                            currentAnswer += event.results[i][0].transcript.trim() + " ";
+                        } else {
+                            interimTranscript += event.results[i][0].transcript;
+                        }
+                    }
+                    document.getElementById("current-answer").innerText = currentAnswer + interimTranscript;
+                };
+
+                recognition.onerror = (event) => {
+                    console.error("Speech recognition error: ", event.error);
+                    if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                        stopSpeechRecognition();
+                    }
+                };
+
+                recognition.onend = () => {
+                    // Restart recognition if the interview is still ongoing
+                    if (timeLeft > 0 && document.getElementById("interview-section").style.display === "block") {
+                        recognition.start();
+                    }
+                };
+            }
+
+            recognition.start();
+        }
+
+        function stopSpeechRecognition() {
+            if (recognition) {
+                recognition.stop();
+                recognition = null; // Clean up
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #222;
+            color: #ddd;
+            text-align: center;
+        }
+
+        #start-button {
+            margin-top: 20vh;
+            padding: 15px 30px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.2em;
+        }
+
+        #start-button:hover {
+            background-color: #0056b3;
+        }
+
+        #interview-section {
+            display: none;
+            position: relative;
+            padding: 20px;
+            border: 2px solid #555;
+            border-radius: 10px;
+            background-color: #333;
+            max-width: 600px;
+            margin: 20px auto;
+            text-align: center;
+        }
+
+        #timer {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 1.2em;
+            color: #ddd;
+        }
+
+        #question-display {
+            margin-top: 20px;
+            font-size: 1.5em;
+        }
+
+        #model-container {
+            width: 100%;
+            height: 300px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 1000px;
+        }
+
+        #model {
+            width: 150px;
+            height: 150px;
+            background-color: #ccc;
+            border-radius: 50%;
+            animation: nodding 2s infinite alternate;
+        }
+
+        #model.talking {
+            animation: nodding-swaying 0.5s infinite;
+        }
+
+        @keyframes nodding {
+            0% { transform: rotateX(0deg); }
+            100% { transform: rotateX(-20deg); }
+        }
+
+        @keyframes nodding-swaying {
+            0% { transform: rotateX(0deg) rotateY(0deg); }
+            50% { transform: rotateX(-20deg) rotateY(-10deg); }
+            100% { transform: rotateX(0deg) rotateY(10deg); }
+        }
+
+        #current-answer {
+            margin-top: 20px;
+            font-style: italic;
+            color: #bbb;
+        }
+
+        #next-question {
+            margin-top: 20px;
+            padding: 15px 30px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.2em;
+        }
+
+        #next-question:hover {
+            background-color: #0056b3;
+        }
+
+        #end-message {
+            display: none;
+            margin-top: 20vh;
+        }
+
+        pre {
+            text-align: left;
+            background-color: #333;
+            padding: 10px;
+            border: 1px solid #555;
+            border-radius: 5px;
+            overflow-x: auto;
+            color: #ddd;
+        }
+    </style>
+</head>
+<body>
+    <h1>FTC Dean's List Mock Interview</h1>
+    <button id="start-button" onclick="startInterview()">Start Interview</button>
+
+    <div id="interview-section">
+        <div id="timer">10:00</div>
+        <div id="question-display"></div>
+        <div id="model-container">
+            <div id="model"></div>
+        </div>
+        <div id="current-answer"></div>
+        <button id="next-question" onclick="nextQuestion()">Next Question</button>
+    </div>
+
+    <div id="end-message">
+        <h2>Interview Complete!</h2>
+    </div>
+</body>
+</html>
