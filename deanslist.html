@@ -53,14 +53,17 @@
         }
 
         function nextQuestion() {
-            const answer = currentAnswer.trim();
-            if (answer) {
-                transcript += `Speaker: ${answer}\n`;
-            }
-            currentAnswer = "";
-            document.getElementById("current-answer").innerText = "";
-            askQuestion();
-        }
+    const answer = currentAnswer.trim();
+    if (answer) {
+        transcript += `Speaker: ${answer}\n`;
+    }
+    currentAnswer = "";
+    document.getElementById("current-answer").innerText = "";
+
+    stopSpeechRecognition(); // Stop the microphone before TTS
+    askQuestion();
+}
+
 
         function playTone() {
             const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -107,34 +110,32 @@
         window.speechSynthesis.onvoiceschanged = loadVoices;
 
         function speak(text) {
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.pitch = 0.8;  // Lower pitch for a deeper voice
-            utterance.rate = 1;     // Slightly slower rate for better clarity
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.pitch = 0.8;  // Lower pitch for a deeper voice
+    utterance.rate = 1;     // Slightly slower rate for better clarity
 
-            // Wait until voices are loaded
-            if (voices.length === 0) {
-                loadVoices();  // Load voices if not loaded yet
-            }
+    if (voices.length === 0) {
+        loadVoices();  // Load voices if not loaded yet
+    }
 
-            // Select a male voice (example: English male voice)
-            const maleVoice = voices.find(voice => voice.name.toLowerCase().includes('male') && voice.lang.includes('en'));
+    const maleVoice = voices.find(voice => voice.name.toLowerCase().includes('male') && voice.lang.includes('en'));
+    if (maleVoice) {
+        utterance.voice = maleVoice;
+    }
 
-            if (maleVoice) {
-                utterance.voice = maleVoice;  // Set the voice to the selected male voice
-            }
+    utterance.onstart = () => {
+        document.getElementById("model").classList.add("talking");
+    };
 
-            utterance.onstart = () => {
-                document.getElementById("model").classList.add("talking");
-            };
+    utterance.onend = () => {
+        document.getElementById("model").classList.remove("talking");
+        startSpeechRecognition(); // Restart the microphone after TTS ends
+    };
 
-            utterance.onend = () => {
-                document.getElementById("model").classList.remove("talking");
-                startSpeechRecognition();
-            };
+    window.speechSynthesis.cancel(); // Ensure no overlapping utterances
+    window.speechSynthesis.speak(utterance);
+}
 
-            window.speechSynthesis.cancel(); // Ensure no overlapping utterances
-            window.speechSynthesis.speak(utterance);
-        }
 
         function startSpeechRecognition() {
             if (!('webkitSpeechRecognition' in window)) {
