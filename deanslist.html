@@ -5,11 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FTC Dean's List Mock Interview</title>
     <script>
-        let questions = [
-            "Describe one example of how you are a leader.", "What leadership style do you find works best for you?",
-            "What advice would you give to a student considering joining a FIRST team?",
-            "Tell me about a problem your team experienced and how you helped solve it."
-        ];
+        let questions = ['Describe one example of how you are a leader.',
+ 'What leadership style do you find works best for you?',
+ 'What advice would you give to a student considering joining a FIRST team?',
+ 'Tell me about a problem your team experienced and how you helped solve it.',
+ 'Can you give me examples of your involvement with FIRST activities in your school/community?',
+ 'How have you increased awareness of First in your school? In your community?',
+ 'How long have you been involved with FIRST?',
+ 'Describe your progression with FIRST and your team.',
+ 'Describe how you plan to continue to be active in FIRST beyond high school.',
+ 'What are your plans for post-high school?',
+ 'Describe your roles and responsibilities on the team.',
+ 'What have you accomplished so far that you think will help set your team up for future success?',
+ 'What would be different on your team if you had never joined? What contributions to your team make you the proudest?',
+ 'Provide examples of your technical experience.',
+ 'What is your specialty role on the team? (Mechanical, electrical, design, etc.). Describe your contribution.',
+ 'Describe a time you had to motivate fellow teammates. How did you do it? What were the results?',
+ 'What do you do when you are working with a teammate who you feel is not as committed to FIRST / your team as you are?',
+ 'How has your leadership style changes while you’ve been on your team?'];
 
         let currentAnswer = "";
         let currentQuestion = "";
@@ -17,6 +30,9 @@
         let timeLeft = 600;
         let transcript = "";
         let recognition; // Global variable for speech recognition
+
+        let totalSpeakingTime = 0; // Total time user spends speaking
+        let questionStartTime = 0; // Time when the question was asked
 
         async function startInterview() {
             document.getElementById("start-button").style.display = "none";
@@ -46,6 +62,7 @@
                 return;
             }
 
+            questionStartTime = Date.now();
             currentQuestion = questions.shift();
             document.getElementById("question-display").innerText = currentQuestion;
             speak(currentQuestion);
@@ -53,17 +70,16 @@
         }
 
         function nextQuestion() {
-    const answer = currentAnswer.trim();
-    if (answer) {
-        transcript += `Speaker: ${answer}\n`;
-    }
-    currentAnswer = "";
-    document.getElementById("current-answer").innerText = "";
+            const answer = currentAnswer.trim();
+            if (answer) {
+                transcript += `Speaker: ${answer}\n`;
+            }
+            currentAnswer = "";
+            document.getElementById("current-answer").innerText = "";
 
-    stopSpeechRecognition(); // Stop the microphone before TTS
-    askQuestion();
-}
-
+            stopSpeechRecognition(); // Stop the microphone before TTS
+            askQuestion();
+        }
 
         function playTone() {
             const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -89,6 +105,12 @@
             document.getElementById("interview-section").style.display = "none";
             document.getElementById("end-message").style.display = "block";
 
+            const totalTime = 600 - timeLeft;
+            const deadAirPercentage = ((totalTime - totalSpeakingTime) / totalTime) * 100;
+            const letterGrade = getLetterGrade(100 - deadAirPercentage);
+
+            displayResults(deadAirPercentage, letterGrade, totalSpeakingTime, totalTime);
+
             const transcriptElement = document.createElement("pre");
             transcriptElement.textContent = transcript;
             document.getElementById("end-message").appendChild(transcriptElement);
@@ -101,6 +123,45 @@
             document.getElementById("end-message").appendChild(link);
         }
 
+        function getLetterGrade(percentage) {
+            if (percentage >= 90) return "A";
+            if (percentage >= 80) return "B";
+            if (percentage >= 70) return "C";
+            if (percentage >= 60) return "D";
+            return "F";
+        }
+
+        function displayResults(deadAirPercentage, letterGrade, speakingTime, totalTime) {
+    const resultsContainer = document.createElement("div");
+    resultsContainer.innerHTML = `
+        <h2>Results</h2>
+        <p>Dead Air Percentage: ${deadAirPercentage.toFixed(2)}%</p>
+        <p>Grade: ${letterGrade}</p>
+        <canvas id="pie-chart"></canvas>
+    `;
+
+    document.getElementById("end-message").appendChild(resultsContainer);
+
+    const canvas = document.getElementById("pie-chart");
+    const ctx = canvas.getContext("2d");
+    const data = {
+        datasets: [{
+            data: [speakingTime, totalTime - speakingTime],
+            backgroundColor: ["#007BFF", "#CCCCCC"]
+        }],
+        labels: ["Speaking Time", "Dead Air"]
+    };
+
+    new Chart(ctx, {
+        type: "doughnut",
+        data: data,
+        options: {
+            cutout: '50%' // Creates the hole in the center
+        }
+    });
+}
+
+
         let voices = [];
 
         function loadVoices() {
@@ -110,79 +171,79 @@
         window.speechSynthesis.onvoiceschanged = loadVoices;
 
         function speak(text) {
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.pitch = 0.8;  // Lower pitch for a deeper voice
-    utterance.rate = 1;     // Slightly slower rate for better clarity
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.pitch = 0.8;  // Lower pitch for a deeper voice
+            utterance.rate = 1;     // Slightly slower rate for better clarity
 
-    if (voices.length === 0) {
-        loadVoices();  // Load voices if not loaded yet
-    }
+            if (voices.length === 0) {
+                loadVoices();  // Load voices if not loaded yet
+            }
 
-    const maleVoice = voices.find(voice => voice.name.toLowerCase().includes('male') && voice.lang.includes('en'));
-    if (maleVoice) {
-        utterance.voice = maleVoice;
-    }
+            const maleVoice = voices.find(voice => voice.name.toLowerCase().includes('male') && voice.lang.includes('en'));
+            if (maleVoice) {
+                utterance.voice = maleVoice;
+            }
 
-    utterance.onstart = () => {
-        document.getElementById("model").classList.add("talking");
-    };
+            utterance.onstart = () => {
+                document.getElementById("model").classList.add("talking");
+            };
 
-    utterance.onend = () => {
-        document.getElementById("model").classList.remove("talking");
-        startSpeechRecognition(); // Restart the microphone after TTS ends
-    };
+            utterance.onend = () => {
+                document.getElementById("model").classList.remove("talking");
+                startSpeechRecognition(); // Restart the microphone after TTS ends
+            };
 
-    window.speechSynthesis.cancel(); // Ensure no overlapping utterances
-    window.speechSynthesis.speak(utterance);
-}
-
+            window.speechSynthesis.cancel(); // Ensure no overlapping utterances
+            window.speechSynthesis.speak(utterance);
+        }
 
         function startSpeechRecognition() {
-    if (!('webkitSpeechRecognition' in window)) {
-        alert("Your browser does not support speech recognition.");
-        return;
-    }
-
-    if (!recognition) {
-        recognition = new webkitSpeechRecognition();
-        recognition.continuous = true; // Keeps the recognition running
-        recognition.interimResults = true;
-
-        recognition.onresult = (event) => {
-            let interimTranscript = "";
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-                if (event.results[i].isFinal) {
-                    currentAnswer += event.results[i][0].transcript.trim() + " ";
-                } else {
-                    interimTranscript += event.results[i][0].transcript;
-                }
+            if (!('webkitSpeechRecognition' in window)) {
+                alert("Your browser does not support speech recognition.");
+                return;
             }
 
-            // Update the display with only the last 6 words
-            const fullText = currentAnswer + interimTranscript;
-            const words = fullText.trim().split(/\s+/); // Split by whitespace
-            const lastSixWords = words.slice(-6).join(" ");
-            document.getElementById("current-answer").innerText = lastSixWords;
-        };
+            if (!recognition) {
+                recognition = new webkitSpeechRecognition();
+                recognition.continuous = true; // Keeps the recognition running
+                recognition.interimResults = true;
 
-        recognition.onerror = (event) => {
-            console.error("Speech recognition error: ", event.error);
-            if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-                stopSpeechRecognition();
+                recognition.onresult = (event) => {
+                    let interimTranscript = "";
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        if (event.results[i].isFinal) {
+                            const spokenText = event.results[i][0].transcript.trim();
+                            currentAnswer += spokenText + " ";
+                            totalSpeakingTime += (spokenText.split(" ").length / 3); // Roughly estimate speaking time
+                        } else {
+                            interimTranscript += event.results[i][0].transcript;
+                        }
+                    }
+
+                    // Update the display with only the last 6 words
+                    const fullText = currentAnswer + interimTranscript;
+                    const words = fullText.trim().split(/\s+/); // Split by whitespace
+                    const lastSixWords = words.slice(-6).join(" ");
+                    document.getElementById("current-answer").innerText = lastSixWords;
+                };
+
+                recognition.onerror = (event) => {
+                    console.error("Speech recognition error: ", event.error);
+                    if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                        stopSpeechRecognition();
+                    }
+                };
+
+                recognition.onend = () => {
+                    // Restart recognition if the interview is still ongoing
+                    if (timeLeft > 0 && document.getElementById("interview-section").style.display === "block") {
+                        recognition.start();
+                    }
+                };
             }
-        };
 
-        recognition.onend = () => {
-            // Restart recognition if the interview is still ongoing
-            if (timeLeft > 0 && document.getElementById("interview-section").style.display === "block") {
-                recognition.start();
-            }
-        };
-    }
-
-    recognition.start();
-}
-
+            recognition.start();
+        }
 
         function stopSpeechRecognition() {
             if (recognition) {
@@ -191,6 +252,7 @@
             }
         }
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -211,6 +273,15 @@
             cursor: pointer;
             font-size: 1.2em;
         }
+       #pie-chart {
+    width: 33.33%; /* Occupies one-third of the screen width */
+    min-width: 150px; /* Ensures it doesn't get too small */
+    max-width: 300px; /* Caps the maximum size */
+    margin: 0 auto; /* Centers the chart horizontally */
+    display: block; /* Ensures proper rendering as a block element */
+}
+
+
 
         #start-button:hover {
             background-color: #0056b3;
