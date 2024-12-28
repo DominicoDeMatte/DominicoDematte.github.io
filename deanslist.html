@@ -138,45 +138,51 @@
 
 
         function startSpeechRecognition() {
-            if (!('webkitSpeechRecognition' in window)) {
-                alert("Your browser does not support speech recognition.");
-                return;
+    if (!('webkitSpeechRecognition' in window)) {
+        alert("Your browser does not support speech recognition.");
+        return;
+    }
+
+    if (!recognition) {
+        recognition = new webkitSpeechRecognition();
+        recognition.continuous = true; // Keeps the recognition running
+        recognition.interimResults = true;
+
+        recognition.onresult = (event) => {
+            let interimTranscript = "";
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                if (event.results[i].isFinal) {
+                    currentAnswer += event.results[i][0].transcript.trim() + " ";
+                } else {
+                    interimTranscript += event.results[i][0].transcript;
+                }
             }
 
-            if (!recognition) {
-                recognition = new webkitSpeechRecognition();
-                recognition.continuous = true; // Keeps the recognition running
-                recognition.interimResults = true;
+            // Update the display with only the last 6 words
+            const fullText = currentAnswer + interimTranscript;
+            const words = fullText.trim().split(/\s+/); // Split by whitespace
+            const lastSixWords = words.slice(-6).join(" ");
+            document.getElementById("current-answer").innerText = lastSixWords;
+        };
 
-                recognition.onresult = (event) => {
-                    let interimTranscript = "";
-                    for (let i = event.resultIndex; i < event.results.length; i++) {
-                        if (event.results[i].isFinal) {
-                            currentAnswer += event.results[i][0].transcript.trim() + " ";
-                        } else {
-                            interimTranscript += event.results[i][0].transcript;
-                        }
-                    }
-                    document.getElementById("current-answer").innerText = currentAnswer + interimTranscript;
-                };
-
-                recognition.onerror = (event) => {
-                    console.error("Speech recognition error: ", event.error);
-                    if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-                        stopSpeechRecognition();
-                    }
-                };
-
-                recognition.onend = () => {
-                    // Restart recognition if the interview is still ongoing
-                    if (timeLeft > 0 && document.getElementById("interview-section").style.display === "block") {
-                        recognition.start();
-                    }
-                };
+        recognition.onerror = (event) => {
+            console.error("Speech recognition error: ", event.error);
+            if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                stopSpeechRecognition();
             }
+        };
 
-            recognition.start();
-        }
+        recognition.onend = () => {
+            // Restart recognition if the interview is still ongoing
+            if (timeLeft > 0 && document.getElementById("interview-section").style.display === "block") {
+                recognition.start();
+            }
+        };
+    }
+
+    recognition.start();
+}
+
 
         function stopSpeechRecognition() {
             if (recognition) {
