@@ -1,10 +1,66 @@
-<script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Question Bank</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    .hidden { display: none; }
+    .question { font-size: 1.5rem; margin: 20px; }
+    .admin-list { text-align: left; margin: 0 auto; width: 50%; }
+    .admin-item { display: flex; justify-content: space-between; margin: 10px 0; }
+    .back-button {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Question Bank</h1>
+
+  <!-- Password Section -->
+  <div id="password-section">
+    <input type="password" id="password-input" placeholder="Enter password">
+    <button onclick="checkPassword()">Submit</button>
+  </div>
+
+  <!-- Admin Section -->
+  <div id="admin-section" class="hidden">
+    <h2>Admin Panel</h2>
+    <ul id="question-list" class="admin-list"></ul>
+    <button class="back-button" onclick="goBack()">Back</button>
+  </div>
+
+  <!-- Randomizer Section -->
+  <div id="randomizer-section" class="hidden">
+    <h2>Random Question</h2>
+    <div id="question-display" class="question"></div>
+    <button onclick="showRandomQuestion()">Show Random Question</button>
+    <button class="back-button" onclick="goBack()">Back</button>
+  </div>
+
+  <!-- User Section -->
+  <div id="user-section" class="hidden">
+    <h2>Submit a Question</h2>
+    <input type="text" id="new-question" placeholder="Enter your question">
+    <button onclick="submitQuestion()">Submit</button>
+    <button class="back-button" onclick="goBack()">Back</button>
+  </div>
+
+  <script>
+    // GitHub Repo Details
     const GITHUB_REPO = "DominicoDeMatte/DominicoDeMatte.github.io"; // Replace with your repository
     const FILE_PATH = "questions.json"; // JSON file storing questions
-    const GITHUB_TOKEN = "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"; // Replace with your PAT
+    const GITHUB_TOKEN = "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"; // Replace with your GitHub token
 
     let questionBank = [];
 
+    // Fetch Questions from GitHub
     async function fetchQuestions() {
       try {
         const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${FILE_PATH}`, {
@@ -13,7 +69,7 @@
           },
         });
         if (!response.ok) throw new Error("Failed to fetch questions");
-        const fileData = await response.json(); // Fix: Corrected response parsing
+        const fileData = await response.json();
         const content = atob(fileData.content); // Decode Base64 content
         questionBank = JSON.parse(content);
         updateAdminList();
@@ -23,6 +79,7 @@
       }
     }
 
+    // Save Questions to GitHub
     async function saveQuestions() {
       try {
         const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${FILE_PATH}`, {
@@ -31,8 +88,8 @@
           },
         });
         if (!response.ok) throw new Error("Failed to fetch file metadata");
-        const fileData = await response.json(); // Fix: Corrected response parsing
-        const updatedContent = btoa(JSON.stringify(questionBank, null, 2)); // Encode content to Base64
+        const fileData = await response.json();
+        const updatedContent = btoa(JSON.stringify(questionBank, null, 2)); // Encode to Base64
 
         await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${FILE_PATH}`, {
           method: "PUT",
@@ -51,4 +108,77 @@
         alert("Failed to save questions. Please try again later.");
       }
     }
-</script>
+
+    // Password Validation
+    function checkPassword() {
+      const password = document.getElementById('password-input').value;
+      document.getElementById('password-section').classList.add('hidden');
+
+      if (password === 'ADMIN') {
+        document.getElementById('admin-section').classList.remove('hidden');
+        updateAdminList();
+      } else if (password === 'GO') {
+        document.getElementById('randomizer-section').classList.remove('hidden');
+      } else if (password === 'USER') {
+        document.getElementById('user-section').classList.remove('hidden');
+      } else {
+        alert('Invalid password');
+        document.getElementById('password-section').classList.remove('hidden');
+      }
+    }
+
+    // Return to Password Section
+    function goBack() {
+      document.getElementById('password-section').classList.remove('hidden');
+      document.getElementById('admin-section').classList.add('hidden');
+      document.getElementById('randomizer-section').classList.add('hidden');
+      document.getElementById('user-section').classList.add('hidden');
+    }
+
+    // Update Admin List with Questions
+    function updateAdminList() {
+      const list = document.getElementById('question-list');
+      list.innerHTML = '';
+      questionBank.forEach((question, index) => {
+        const item = document.createElement('li');
+        item.classList.add('admin-item');
+        item.innerHTML = `${question} <button onclick="deleteQuestion(${index})">🗑️</button>`;
+        list.appendChild(item);
+      });
+    }
+
+    // Delete Question
+    function deleteQuestion(index) {
+      questionBank.splice(index, 1);
+      updateAdminList();
+      saveQuestions();
+    }
+
+    // Show a Random Question
+    function showRandomQuestion() {
+      if (questionBank.length === 0) {
+        alert('No questions available.');
+        return;
+      }
+      const randomIndex = Math.floor(Math.random() * questionBank.length);
+      document.getElementById('question-display').innerText = questionBank[randomIndex];
+    }
+
+    // Submit a New Question
+    function submitQuestion() {
+      const newQuestion = document.getElementById('new-question').value;
+      if (newQuestion.trim() === '') {
+        alert('Question cannot be empty');
+        return;
+      }
+      questionBank.push(newQuestion);
+      document.getElementById('new-question').value = '';
+      saveQuestions();
+      alert('Question added successfully!');
+    }
+
+    // Load Questions on Page Load
+    fetchQuestions();
+  </script>
+</body>
+</html>
