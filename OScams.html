@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oceanside Traffic Cameras</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 10px;
+      margin: 0;
+      background: #121212;
+      color: #e0e0e0;
+    }
+    .camera-card {
+      background: #1e1e1e;
+      margin-bottom: 20px;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.7);
+    }
+    img {
+      width: 100%;
+      height: auto;
+      border-radius: 6px;
+      margin-top: 10px;
+    }
+    button {
+      margin-top: 10px;
+      padding: 10px;
+      background: #555; /* changed to gray */
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      width: 100%;
+    }
+    button:hover {
+      background: #777; /* lighter gray on hover */
+    }
+    .note {
+      margin-bottom: 20px;
+      font-size: 1rem;
+      color: #aaa;
+    }
+  </style>
+</head>
+<body>
+  <div class="note">Each camera updates about every 5 minutes.</div>
+  <div id="camera-container"></div>
+
+  <script>
+    const cameras = [
+      {name: "Coast & Mission", url: "http://oceansidefiles.com/uploads/TrafficCameras/Coast_Mission.jpg"},
+      {name: "Coast & Oceanside Blvd", url: "http://oceansidefiles.com/uploads/TrafficCameras/Coast_OceansideBLVD.jpg"},
+      {name: "Coast & Surfrider", url: "http://oceansidefiles.com/uploads/TrafficCameras/Coast_Surfrider.jpg"},
+      {name: "Coast & Wisconsin", url: "http://oceansidefiles.com/uploads/TrafficCameras/Coast_Wisconsin.jpg"},
+      {name: "College & Mesa", url: "http://oceansidefiles.com/uploads/TrafficCameras/College_Mesa.jpg"},
+      {name: "College & Plaza", url: "http://oceansidefiles.com/uploads/TrafficCameras/College_Plaza.jpg"},
+      {name: "College & Vista", url: "http://oceansidefiles.com/uploads/TrafficCameras/College_Vista.jpg"},
+      {name: "ECR & Mesa", url: "http://oceansidefiles.com/uploads/TrafficCameras/ECR_Mesa.jpg"},
+      {name: "ECR & Oceanside Blvd", url: "http://oceansidefiles.com/uploads/TrafficCameras/ECR_OceansideBLVD.jpg"},
+      {name: "ECR & Vista", url: "http://oceansidefiles.com/uploads/TrafficCameras/ECR_Vista.jpg"},
+      {name: "Mesa & Old Grove", url: "http://oceansidefiles.com/uploads/TrafficCameras/Mesa_OldGrove.jpg"},
+      {name: "Mission & Canyon", url: "http://oceansidefiles.com/uploads/TrafficCameras/Mission_Canyon.jpg"},
+      {name: "Oceanside & State Tree", url: "http://oceansidefiles.com/uploads/TrafficCameras/Oceanside_StateTree.jpg"},
+      {name: "Oceanside & Vine", url: "http://oceansidefiles.com/uploads/TrafficCameras/Oceanside_Vine.jpg"}
+    ];
+
+    const container = document.getElementById('camera-container');
+
+    cameras.forEach((camera, index) => {
+      const card = document.createElement('div');
+      card.className = 'camera-card';
+      card.innerHTML = `
+        <img id="image-${index}" src="${camera.url}?${Date.now()}" alt="${camera.name}">
+        <button onclick="viewImage(${index})">View Full Image</button>
+      `;
+      container.appendChild(card);
+    });
+
+    function viewImage(index) {
+      const img = document.getElementById(`image-${index}`);
+      window.open(img.src, '_blank');
+    }
+
+    function refreshImages() {
+      cameras.forEach((camera, index) => {
+        const img = document.getElementById(`image-${index}`);
+        img.src = camera.url + '?' + Date.now();
+      });
+    }
+
+    // Refresh images every 30 seconds
+    setInterval(refreshImages, 30000);
+  </script>
+</body>
+</html>
