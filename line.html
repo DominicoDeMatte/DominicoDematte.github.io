@@ -39,7 +39,8 @@
         .button-row, #footer-buttons {
             display: flex;
             justify-content: center;
-            gap: 20px;
+            align-items: center;
+            gap: 60px;
             margin-top: 20px;
         }
         #controls { display: none; }
@@ -59,12 +60,15 @@
     <h2 id="fileNameTitle"></h2>
 
     <div id="output"></div>
+
+    <!-- Controls Row -->
     <div class="button-row" id="controls">
         <button id="backButton">Back</button>
-        <button id="nextButton">Next</button>
         <button id="muteButton">Mute</button>
+        <button id="nextButton">Next</button>
     </div>
 
+    <!-- Footer -->
     <div id="footer-buttons" class="fixed-bottom">
         <button id="processButton">Roles</button>
     </div>
