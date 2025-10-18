@@ -16,6 +16,7 @@
             min-height: 100vh;
         }
         h1 { font-size: 28px; margin-bottom: 20px; }
+
         input[type="file"], button {
             padding: 10px;
             font-size: 18px;
@@ -27,7 +28,9 @@
             transition: background-color 0.3s;
             margin-bottom: 20px;
         }
+
         input[type="file"]:hover, button:hover { background-color: #666; }
+
         #output {
             white-space: pre-wrap;
             text-align: left;
@@ -36,22 +39,56 @@
             padding: 20px;
             border-radius: 10px;
         }
-        .button-row, #footer-buttons {
+
+        /* Layout changes */
+        #controls {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-top: 40px;
+            gap: 30px;
+        }
+
+        #nextButton {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            font-size: 32px;
+            background-color: #5a5aff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        #nextButton:hover {
+            background-color: #7777ff;
+            transform: scale(1.05);
+        }
+
+        .sub-buttons {
             display: flex;
             justify-content: center;
-            align-items: center;
-            gap: 60px;
-            margin-top: 20px;
+            gap: 40px;
         }
-        #controls { display: none; }
+
+        .sub-buttons button {
+            font-size: 18px;
+            padding: 10px 20px;
+            border-radius: 10px;
+        }
+
         .fixed-bottom {
             position: absolute;
             bottom: 20px;
             left: 0;
             right: 0;
         }
+
         #processButton { display: none; }
     </style>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 </head>
 <body>
@@ -61,11 +98,13 @@
 
     <div id="output"></div>
 
-    <!-- Controls Row -->
-    <div class="button-row" id="controls">
-        <button id="backButton">Back</button>
-        <button id="muteButton">Mute</button>
+    <!-- Controls with large Next button -->
+    <div id="controls">
         <button id="nextButton">Next</button>
+        <div class="sub-buttons">
+            <button id="backButton">Back</button>
+            <button id="muteButton">Mute</button>
+        </div>
     </div>
 
     <!-- Footer -->
