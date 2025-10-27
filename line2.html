@@ -73,6 +73,7 @@ button:hover, input[type="file"]:hover {
     border-radius: 10px;
     width: 90%;
     max-width: 800px;
+    transition: border-color 0.3s;
 }
 
 /* Controls */
@@ -158,19 +159,46 @@ processButton.addEventListener('click', handleProcessScript);
 
 // 🔊 Modified nextButton click to include warm chord
 nextButton.addEventListener('click', () => {
-    playClickChord(); // Play soft chord
+    playClickChord(); 
+    flashButton(nextButton);
     navigateLine(1);
-    // Vibrate phone for 50ms
     if (navigator.vibrate) navigator.vibrate(50);
 });
 
-backButton.addEventListener('click', () => navigateLine(-1));
-skipAheadButton.addEventListener('click', skipAhead);
+backButton.addEventListener('click', () => {
+    flashButton(backButton);
+    navigateLine(-1);
+});
+skipAheadButton.addEventListener('click', () => {
+    flashButton(skipAheadButton);
+    skipAhead();
+});
+resetButton.addEventListener('click', () => {
+    flashButton(resetButton);
+    resetScene();
+});
+clearButton.addEventListener('click', () => {
+    flashButton(clearButton);
+    clearPDF();
+});
 muteButton.addEventListener('click', toggleMute);
-resetButton.addEventListener('click', resetScene);
-clearButton.addEventListener('click', clearPDF);
 
 speechSynthesis.onvoiceschanged = loadVoices;
+
+// 🎨 Flash buttons on mobile (except toggles)
+function flashButton(button) {
+    if (/Mobi|Android/i.test(navigator.userAgent)) {
+        if (button === muteButton) return; // skip toggle buttons
+        const originalBg = button.style.backgroundColor;
+        const originalColor = button.style.color;
+        button.style.backgroundColor = 'green';
+        button.style.color = 'white';
+        setTimeout(() => {
+            button.style.backgroundColor = originalBg || 'black';
+            button.style.color = originalColor || 'white';
+        }, 500);
+    }
+}
 
 function toggleMute() {
     isMuted = !isMuted;
@@ -312,10 +340,15 @@ function navigateLine(direction) {
     if (currentLineIndex < 0 || currentLineIndex >= lines.length) {
         controls.style.display = 'none';
         outputDiv.innerHTML = "<h2>No more lines to read!</h2>";
+        outputDiv.style.borderColor = "white";
         return;
     }
-    const { prefix, speaker, line } = lines[currentLineIndex];
+    const { prefix, speaker, line, choice } = lines[currentLineIndex];
     const displayLine = line.replace(/\(.*?\)/g, '').trim();
+
+    // 🟢 Highlight border if muted
+    outputDiv.style.borderColor = (choice === 'mute') ? 'green' : 'white';
+
     outputDiv.innerHTML = `<h2>${speaker}: ${displayLine}</h2>`;
     if (!isMuted && prefix !== '!!' && prefix !== 'xx') speak(prefix + " " + line, displayLine);
     else speechSynthesis.cancel();
@@ -336,6 +369,7 @@ function clearPDF() {
     controls.style.display = "none";
     processButton.style.display = "none";
     speechSynthesis.cancel();
+    outputDiv.style.borderColor = "white";
 }
 
 function skipAhead() {
@@ -350,6 +384,7 @@ function skipAhead() {
         currentLineIndex = lines.length;
         controls.style.display = 'none';
         outputDiv.innerHTML = "<h2>No more lines to read!</h2>";
+        outputDiv.style.borderColor = "white";
         return;
     }
     currentLineIndex = nextIndex - 1;
