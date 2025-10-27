@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Script Cleaner</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: black;
+        color: white;
+    }
+    textarea {
+        width: 100%;
+        height: 300px;
+        margin-bottom: 10px;
+        font-family: monospace;
+        font-size: 14px;
+        background-color: black;
+        color: white;
+        border: 1px solid white;
+        padding: 10px;
+    }
+    .button-container {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+    button {
+        padding: 10px 20px;
+        font-size: 16px;
+        background-color: white;
+        color: black;
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+    button.active {
+        background-color: green;
+        color: white;
+    }
+</style>
+</head>
+<body>
+
+<h2>Script Cleaner</h2>
+<p>Paste your script below:</p>
+<textarea id="inputScript" placeholder="Paste your script here..."></textarea>
+<br>
+<div class="button-container">
+    <button onclick="pasteClipboard(this)">Paste Clipboard</button>
+    <button onclick="cleanScript(this)">Clean Script</button>
+    <button onclick="copyOutput(this)">Copy Output</button>
+</div>
+<p>Cleaned Script:</p>
+<textarea id="output" readonly></textarea>
+
+<script>
+async function pasteClipboard(button) {
+    try {
+        const text = await navigator.clipboard.readText();
+        const input = document.getElementById('inputScript');
+        input.value = text;
+        triggerButtonEffect(button);
+    } catch (err) {
+        console.error('Failed to read clipboard: ', err);
+    }
+}
+
+function triggerButtonEffect(button) {
+    button.classList.add('active');
+    setTimeout(() => button.classList.remove('active'), 1000);
+}
+
+function cleanScript(button) {
+    const input = document.getElementById('inputScript').value;
+    const lines = input.split('\n');
+
+    const outputLines = [];
+    let currentChar = '';
+    let buffer = '';
+
+    lines.forEach(line => {
+        line = line.trim();
+        if (!line) return;
+
+        // Remove page numbers and credits
+        if (/^\d+$/.test(line)) return;
+        if (/Prepared for|Invoice|Clue: On Stage/i.test(line)) return;
+
+        // Check if line starts with CHARACTER. (all caps)
+        const match = line.match(/^([A-Z][A-Z\s]*?)\.\s*(.*)/);
+        if (match) {
+            if (currentChar && buffer) {
+                let cleanedLine = currentChar + '. ' + buffer.trim();
+                cleanedLine = cleanedLine.replace(/\([^)]*\)/g, '').trim();
+                outputLines.push(cleanedLine);
+                outputLines.push('');
+            }
+            currentChar = match[1].trim();
+            buffer = match[2];
+        } else {
+            buffer += ' ' + line;
+        }
+    });
+
+    if (currentChar && buffer) {
+        let cleanedLine = currentChar + '. ' + buffer.trim();
+        cleanedLine = cleanedLine.replace(/\([^)]*\)/g, '').trim();
+        outputLines.push(cleanedLine);
+    }
+
+    document.getElementById('output').value = outputLines.join('\n');
+    if (button) triggerButtonEffect(button);
+}
+
+function copyOutput(button) {
+    const output = document.getElementById('output');
+    output.select();
+    navigator.clipboard.writeText(output.value).then(() => {
+        if (button) triggerButtonEffect(button);
+    });
+}
+</script>
+
+</body>
+</html>
