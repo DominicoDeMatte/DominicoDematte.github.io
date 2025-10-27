@@ -38,7 +38,7 @@ body {
     z-index: 10;
 }
 
-/* All buttons */
+/* Buttons */
 button, input[type="file"] {
     padding: 10px 20px;
     font-size: 18px;
@@ -49,7 +49,6 @@ button, input[type="file"] {
     cursor: pointer;
     transition: background-color 0.3s, color 0.3s;
 }
-
 button:hover, input[type="file"]:hover {
     background-color: green;
     color: white;
@@ -59,7 +58,6 @@ button:hover, input[type="file"]:hover {
 #fileNameTitle {
     margin-top: 70px;
     font-size: 18px;
-    color: white;
 }
 
 /* Output box */
@@ -117,9 +115,9 @@ button:hover, input[type="file"]:hover {
     background-color: black;
     border: 2px solid white;
     border-radius: 10px;
-    padding: 20px;
+    padding: 30px;
     z-index: 20;
-    width: 300px;
+    width: 320px;
     text-align: center;
 }
 
@@ -133,23 +131,46 @@ button:hover, input[type="file"]:hover {
     font-size: 16px;
 }
 
-#settingsModal input[type="range"] {
-    width: 100%;
-}
-
 #closeSettings {
     position: absolute;
     top: 8px;
     right: 10px;
-    font-size: 20px;
+    font-size: 22px;
     background: none;
     border: none;
     color: white;
     cursor: pointer;
 }
 
-#settingsButton {
-    font-size: 20px;
+/* Vertical sliders */
+.slider-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+    margin-top: 20px;
+}
+
+.slider-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+input[type="range"] {
+    appearance: slider-vertical;
+    writing-mode: bt-lr;
+    width: 6px;
+    height: 120px;
+    background: white;
+    accent-color: white;
+    cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+    background: white;
+}
+input[type="range"]::-moz-range-thumb {
+    background: white;
 }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
@@ -161,17 +182,25 @@ button:hover, input[type="file"]:hover {
     <button id="clearButton">X</button>
     <button id="processButton" style="display:none;">Roles</button>
     <button id="resetButton"><<</button>
-    <button id="settingsButton">⚙️</button>
+    <button id="settingsButton">?</button>
 </div>
 
 <!-- Settings Modal -->
 <div id="settingsModal">
-    <button id="closeSettings">❌</button>
+    <button id="closeSettings">✖</button>
     <h2>Settings</h2>
-    <label>Volume: <span id="volumeValue"></span></label>
-    <input type="range" id="volumeSlider" min="0" max="1" step="0.05">
-    <label>Speed: <span id="speedValue"></span></label>
-    <input type="range" id="speedSlider" min="0.5" max="2" step="0.1">
+    <div class="slider-container">
+        <div class="slider-wrapper">
+            <label>Vol</label>
+            <input type="range" id="volumeSlider" min="0" max="1" step="0.05">
+            <span id="volumeValue"></span>
+        </div>
+        <div class="slider-wrapper">
+            <label>Speed</label>
+            <input type="range" id="speedSlider" min="0.5" max="2" step="0.1">
+            <span id="speedValue"></span>
+        </div>
+    </div>
 </div>
 
 <!-- File name display -->
@@ -192,260 +221,234 @@ button:hover, input[type="file"]:hover {
 </div>
 
 <script>
-const fileInput = document.getElementById('fileInput');
-const processButton = document.getElementById('processButton');
-const resetButton = document.getElementById('resetButton');
-const clearButton = document.getElementById('clearButton');
-const outputDiv = document.getElementById('output');
-const controls = document.getElementById('controls');
-const nextButton = document.getElementById('nextButton');
-const backButton = document.getElementById('backButton');
-const skipAheadButton = document.getElementById('skipAheadButton');
-const muteButton = document.getElementById('muteButton');
-const fileNameTitle = document.getElementById('fileNameTitle');
-const settingsButton = document.getElementById('settingsButton');
-const settingsModal = document.getElementById('settingsModal');
-const closeSettings = document.getElementById('closeSettings');
-const volumeSlider = document.getElementById('volumeSlider');
-const speedSlider = document.getElementById('speedSlider');
-const volumeValue = document.getElementById('volumeValue');
-const speedValue = document.getElementById('speedValue');
+const fileInput=document.getElementById('fileInput');
+const processButton=document.getElementById('processButton');
+const resetButton=document.getElementById('resetButton');
+const clearButton=document.getElementById('clearButton');
+const outputDiv=document.getElementById('output');
+const controls=document.getElementById('controls');
+const nextButton=document.getElementById('nextButton');
+const backButton=document.getElementById('backButton');
+const skipAheadButton=document.getElementById('skipAheadButton');
+const muteButton=document.getElementById('muteButton');
+const fileNameTitle=document.getElementById('fileNameTitle');
+const settingsButton=document.getElementById('settingsButton');
+const settingsModal=document.getElementById('settingsModal');
+const closeSettings=document.getElementById('closeSettings');
+const volumeSlider=document.getElementById('volumeSlider');
+const speedSlider=document.getElementById('speedSlider');
+const volumeValue=document.getElementById('volumeValue');
+const speedValue=document.getElementById('speedValue');
 
-let characterChoices = {};
-let lines = [];
-let currentLineIndex = -1;
-let voices = [];
-let isMuted = false;
-let pdfLoaded = false;
-let buttonFlashTimers = new WeakMap();
-let settings = {
-    volume: parseFloat(localStorage.getItem('volume')) || 0.8,
-    speed: parseFloat(localStorage.getItem('speed')) || 1.0
+let characterChoices={};
+let lines=[];
+let currentLineIndex=-1;
+let voices=[];
+let isMuted=false;
+let pdfLoaded=false;
+let buttonFlashTimers=new WeakMap();
+let settings={
+    volume:parseFloat(localStorage.getItem('volume'))||0.8,
+    speed:parseFloat(localStorage.getItem('speed'))||1.0
 };
 
-// Set slider values and display numbers
-volumeSlider.value = settings.volume;
-speedSlider.value = settings.speed;
-volumeValue.textContent = settings.volume.toFixed(2);
-speedValue.textContent = settings.speed.toFixed(1);
+volumeSlider.value=settings.volume;
+speedSlider.value=settings.speed;
+volumeValue.textContent=settings.volume.toFixed(2);
+speedValue.textContent=settings.speed.toFixed(1);
 
-volumeSlider.addEventListener('input', () => {
-    settings.volume = parseFloat(volumeSlider.value);
-    volumeValue.textContent = settings.volume.toFixed(2);
-    localStorage.setItem('volume', settings.volume);
+volumeSlider.addEventListener('input',()=>{
+    settings.volume=parseFloat(volumeSlider.value);
+    volumeValue.textContent=settings.volume.toFixed(2);
+    localStorage.setItem('volume',settings.volume);
+});
+speedSlider.addEventListener('input',()=>{
+    settings.speed=parseFloat(speedSlider.value);
+    speedValue.textContent=settings.speed.toFixed(1);
+    localStorage.setItem('speed',settings.speed);
 });
 
-speedSlider.addEventListener('input', () => {
-    settings.speed = parseFloat(speedSlider.value);
-    speedValue.textContent = settings.speed.toFixed(1);
-    localStorage.setItem('speed', settings.speed);
-});
-
-// Flash animation for all buttons
-function flashButton(btn) {
-    if (buttonFlashTimers.has(btn)) {
+function flashButton(btn){
+    if(buttonFlashTimers.has(btn)){
         clearTimeout(buttonFlashTimers.get(btn));
         buttonFlashTimers.delete(btn);
     }
-    btn.style.transition = 'background-color 0.15s ease';
-    btn.style.backgroundColor = 'green';
-    btn.style.color = 'white';
-    const timer = setTimeout(() => {
-        if (btn === muteButton && isMuted) return; // keep green if muted
-        btn.style.backgroundColor = 'black';
-        btn.style.color = 'white';
+    btn.style.transition='background-color 0.15s ease';
+    btn.style.backgroundColor='green';
+    btn.style.color='white';
+    const timer=setTimeout(()=>{
+        if(btn===muteButton&&isMuted)return;
+        btn.style.backgroundColor='black';
+        btn.style.color='white';
         buttonFlashTimers.delete(btn);
-    }, 500);
-    buttonFlashTimers.set(btn, timer);
+    },500);
+    buttonFlashTimers.set(btn,timer);
 }
 
-// Events
-fileInput.addEventListener('change', handleFileChange);
-processButton.addEventListener('click', handleProcessScript);
-nextButton.addEventListener('click', () => { flashButton(nextButton); playClickChord(); navigateLine(1); if (navigator.vibrate) navigator.vibrate(50); });
-backButton.addEventListener('click', () => { flashButton(backButton); navigateLine(-1); });
-skipAheadButton.addEventListener('click', () => { flashButton(skipAheadButton); skipAhead(); });
-muteButton.addEventListener('click', () => { flashButton(muteButton); toggleMute(); });
-resetButton.addEventListener('click', () => { flashButton(resetButton); resetScene(); });
-clearButton.addEventListener('click', () => { flashButton(clearButton); clearPDF(); });
-settingsButton.addEventListener('click', () => settingsModal.style.display = 'block');
-closeSettings.addEventListener('click', () => settingsModal.style.display = 'none');
+fileInput.addEventListener('change',handleFileChange);
+processButton.addEventListener('click',handleProcessScript);
+nextButton.addEventListener('click',()=>{flashButton(nextButton);playClickChord();navigateLine(1);if(navigator.vibrate)navigator.vibrate(50);});
+backButton.addEventListener('click',()=>{flashButton(backButton);navigateLine(-1);});
+skipAheadButton.addEventListener('click',()=>{flashButton(skipAheadButton);skipAhead();});
+muteButton.addEventListener('click',()=>{flashButton(muteButton);toggleMute();});
+resetButton.addEventListener('click',()=>{flashButton(resetButton);resetScene();});
+clearButton.addEventListener('click',()=>{flashButton(clearButton);clearPDF();});
+settingsButton.addEventListener('click',()=>settingsModal.style.display='block');
+closeSettings.addEventListener('click',()=>settingsModal.style.display='none');
 
-speechSynthesis.onvoiceschanged = loadVoices;
+speechSynthesis.onvoiceschanged=loadVoices;
 
-function toggleMute() {
-    isMuted = !isMuted;
-    muteButton.textContent = isMuted ? "Unmute" : "Mute";
-    muteButton.style.backgroundColor = isMuted ? "green" : "black";
-    muteButton.style.color = "white";
-    if (isMuted) speechSynthesis.cancel();
+function toggleMute(){
+    isMuted=!isMuted;
+    muteButton.textContent=isMuted?"Unmute":"Mute";
+    muteButton.style.backgroundColor=isMuted?"green":"black";
+    muteButton.style.color="white";
+    if(isMuted)speechSynthesis.cancel();
 }
 
-function handleFileChange() {
-    const file = fileInput.files[0];
-    if (file) {
-        pdfLoaded = true;
-        fileInput.style.display = "none";
-        fileNameTitle.textContent = stripExtension(file.name);
-        processButton.style.display = "inline-block";
+function handleFileChange(){
+    const file=fileInput.files[0];
+    if(file){
+        pdfLoaded=true;
+        fileInput.style.display="none";
+        fileNameTitle.textContent=stripExtension(file.name);
+        processButton.style.display="inline-block";
     }
 }
+function stripExtension(filename){return filename.replace(/\.[^/.]+$/,"");}
+function loadVoices(){voices=speechSynthesis.getVoices();}
 
-function stripExtension(filename) { return filename.replace(/\.[^/.]+$/, ""); }
-
-function loadVoices() { voices = speechSynthesis.getVoices(); }
-
-function handleProcessScript() {
-    const file = fileInput.files[0];
-    if (!file) return alert("Please upload a script.");
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const typedArray = new Uint8Array(e.target.result);
-        pdfjsLib.getDocument(typedArray).promise.then(pdf =>
-            Promise.all(Array.from({ length: pdf.numPages }, (_, i) => pdf.getPage(i + 1).then(p => p.getTextContent())))
-        ).then(arr => {
-            const fullText = arr.flatMap(tc => tc.items.map(i => i.str)).join(' ');
+function handleProcessScript(){
+    const file=fileInput.files[0];
+    if(!file)return alert("Please upload a script.");
+    const reader=new FileReader();
+    reader.onload=(e)=>{
+        const typedArray=new Uint8Array(e.target.result);
+        pdfjsLib.getDocument(typedArray).promise.then(pdf=>
+            Promise.all(Array.from({length:pdf.numPages},(_,i)=>pdf.getPage(i+1).then(p=>p.getTextContent())))
+        ).then(arr=>{
+            const fullText=arr.flatMap(tc=>tc.items.map(i=>i.str)).join(' ');
             identifyCharacters(fullText);
         });
     };
     reader.readAsArrayBuffer(file);
 }
 
-function identifyCharacters(scriptText) {
-    const regex = /([A-Z]{2,})[,.]\s*(.+?)(?=[A-Z]{2,}[,.]\s*|$)/gs;
-    const chars = new Set();
+function identifyCharacters(scriptText){
+    const regex=/([A-Z]{2,})[,.]\s*(.+?)(?=[A-Z]{2,}[,.]\s*|$)/gs;
+    const chars=new Set();
     let match;
-    while ((match = regex.exec(scriptText)) !== null) chars.add(match[1].trim());
-    if (chars.size > 0) displayCharacterSelection([...chars], scriptText);
+    while((match=regex.exec(scriptText))!==null)chars.add(match[1].trim());
+    if(chars.size>0)displayCharacterSelection([...chars],scriptText);
     else alert("No characters found.");
 }
 
-function displayCharacterSelection(chars, scriptText) {
-    outputDiv.innerHTML = '<h2>Select Voice Type for Each Character</h2>';
-    const form = document.createElement('form');
-    chars.forEach(ch => {
-        const div = document.createElement('div');
-        div.style.marginBottom = '10px';
-        div.innerHTML = `<label>${ch}:</label>
-            <select name="${ch}" style="margin-left:10px;background:black;color:white;border:2px solid white;border-radius:5px;padding:5px;">
-                <option value="masc">Masc</option>
-                <option value="fem">Fem</option>
-                <option value="mute">Mute</option>
-                <option value="skip">Skip</option>
-            </select>`;
+function displayCharacterSelection(chars,scriptText){
+    outputDiv.innerHTML='<h2>Select Voice Type for Each Character</h2>';
+    const form=document.createElement('form');
+    chars.forEach(ch=>{
+        const div=document.createElement('div');
+        div.style.marginBottom='10px';
+        div.innerHTML=`<label>${ch}:</label>
+        <select name="${ch}" style="margin-left:10px;background:black;color:white;border:2px solid white;border-radius:5px;padding:5px;">
+            <option value="masc">Masc</option>
+            <option value="fem">Fem</option>
+            <option value="mute">Mute</option>
+            <option value="skip">Skip</option>
+        </select>`;
         form.appendChild(div);
     });
-    const done = document.createElement('button');
-    done.textContent = "Done";
-    done.style = "background:black;color:white;border:2px solid white;border-radius:5px;padding:10px 20px;";
-    done.addEventListener('click', e => {
+    const done=document.createElement('button');
+    done.textContent="Done";
+    done.style="background:black;color:white;border:2px solid white;border-radius:5px;padding:10px 20px;";
+    done.addEventListener('click',e=>{
         e.preventDefault();
-        new FormData(form).forEach((v, k) => characterChoices[k] = v);
+        new FormData(form).forEach((v,k)=>characterChoices[k]=v);
         processScriptWithSelections(scriptText);
     });
     form.appendChild(done);
     outputDiv.appendChild(form);
 }
 
-function processScriptWithSelections(scriptText) {
-    const regex = /([A-Z]{2,})[,.]\s*(.+?)(?=[A-Z]{2,}[,.]\s*|$)/gs;
-    lines = [];
+function processScriptWithSelections(scriptText){
+    const regex=/([A-Z]{2,})[,.]\s*(.+?)(?=[A-Z]{2,}[,.]\s*|$)/gs;
+    lines=[];
     let match;
-    while ((match = regex.exec(scriptText)) !== null) {
-        const speaker = match[1].trim();
-        const line = match[2].trim();
-        const choice = characterChoices[speaker];
-        const prefix = getPrefix(choice);
-        lines.push({ prefix, speaker, line, choice });
+    while((match=regex.exec(scriptText))!==null){
+        const speaker=match[1].trim();
+        const line=match[2].trim();
+        const choice=characterChoices[speaker];
+        const prefix=getPrefix(choice);
+        lines.push({prefix,speaker,line,choice});
     }
-    controls.style.display = 'flex';
+    controls.style.display='flex';
     navigateLine(1);
 }
-
-function getPrefix(choice) {
-    return choice === 'masc' ? '++' :
-           choice === 'fem' ? '--' :
-           choice === 'mute' ? '!!' :
-           choice === 'skip' ? 'xx' : '';
+function getPrefix(choice){
+    return choice==='masc'?'++':choice==='fem'?'--':choice==='mute'?'!!':choice==='skip'?'xx':'';
 }
-
-function navigateLine(direction) {
-    currentLineIndex += direction;
-    while (currentLineIndex >= 0 && currentLineIndex < lines.length && lines[currentLineIndex].choice === 'skip')
-        currentLineIndex += direction;
-    if (currentLineIndex < 0 || currentLineIndex >= lines.length) {
-        controls.style.display = 'none';
-        outputDiv.innerHTML = "<h2>No more lines to read!</h2>";
-        outputDiv.style.borderColor = "white";
+function navigateLine(direction){
+    currentLineIndex+=direction;
+    while(currentLineIndex>=0&&currentLineIndex<lines.length&&lines[currentLineIndex].choice==='skip')
+        currentLineIndex+=direction;
+    if(currentLineIndex<0||currentLineIndex>=lines.length){
+        controls.style.display='none';
+        outputDiv.innerHTML="<h2>No more lines to read!</h2>";
+        outputDiv.style.borderColor="white";
         return;
     }
-    const { speaker, line, choice } = lines[currentLineIndex];
-    const cleanLine = line.replace(/\(.*?\)/g, '').trim();
-    outputDiv.style.borderColor = (choice === 'mute') ? 'green' : 'white';
-    outputDiv.innerHTML = `<h2>${speaker}: ${cleanLine}</h2>`;
-    if (!isMuted && choice !== 'mute' && choice !== 'skip') speak(line);
+    const{speaker,line,choice}=lines[currentLineIndex];
+    const clean=line.replace(/\(.*?\)/g,'').trim();
+    outputDiv.style.borderColor=(choice==='mute')?'green':'white';
+    outputDiv.innerHTML=`<h2>${speaker}: ${clean}</h2>`;
+    if(!isMuted&&choice!=='mute'&&choice!=='skip')speak(line);
     else speechSynthesis.cancel();
-    if (isMuted) {
-        muteButton.style.backgroundColor = 'green';
-        muteButton.style.color = 'white';
-    }
+    if(isMuted){muteButton.style.backgroundColor='green';muteButton.style.color='white';}
 }
-
-function speak(text) {
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.volume = settings.volume;
-    utter.rate = settings.speed;
+function speak(text){
+    const u=new SpeechSynthesisUtterance(text);
+    u.volume=settings.volume;
+    u.rate=settings.speed;
     speechSynthesis.cancel();
-    speechSynthesis.speak(utter);
+    speechSynthesis.speak(u);
 }
-
-function resetScene() {
-    if (lines.length === 0) return;
-    currentLineIndex = -1;
-    navigateLine(1);
-}
-
-function clearPDF() {
-    pdfLoaded = false;
-    fileInput.value = "";
-    fileInput.style.display = "inline-block";
-    fileNameTitle.textContent = "";
-    outputDiv.innerHTML = "";
-    controls.style.display = "none";
-    processButton.style.display = "none";
+function resetScene(){if(lines.length===0)return;currentLineIndex=-1;navigateLine(1);}
+function clearPDF(){
+    pdfLoaded=false;
+    fileInput.value="";
+    fileInput.style.display="inline-block";
+    fileNameTitle.textContent="";
+    outputDiv.innerHTML="";
+    controls.style.display="none";
+    processButton.style.display="none";
     speechSynthesis.cancel();
-    outputDiv.style.borderColor = "white";
+    outputDiv.style.borderColor="white";
 }
-
-function skipAhead() {
-    let nextIndex = -1;
-    for (let i = currentLineIndex + 1; i < lines.length; i++)
-        if (lines[i].choice === 'mute' || lines[i].choice === 'skip') { nextIndex = i; break; }
-    if (nextIndex === -1) {
-        currentLineIndex = lines.length;
-        controls.style.display = 'none';
-        outputDiv.innerHTML = "<h2>No more lines to read!</h2>";
-        outputDiv.style.borderColor = "white";
+function skipAhead(){
+    let next=-1;
+    for(let i=currentLineIndex+1;i<lines.length;i++)
+        if(lines[i].choice==='mute'||lines[i].choice==='skip'){next=i;break;}
+    if(next===-1){
+        currentLineIndex=lines.length;
+        controls.style.display='none';
+        outputDiv.innerHTML="<h2>No more lines to read!</h2>";
+        outputDiv.style.borderColor="white";
         return;
     }
-    currentLineIndex = nextIndex - 1;
+    currentLineIndex=next-1;
     navigateLine(0);
 }
-
-function playClickChord() {
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const now = audioCtx.currentTime;
-    const freqs = [261.63, 329.63, 392.00];
-    freqs.forEach(f => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(f, now);
-        gain.gain.setValueAtTime(0.08, now);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.4);
-        osc.connect(gain).connect(audioCtx.destination);
-        osc.start(now);
-        osc.stop(now + 0.4);
+function playClickChord(){
+    const a=new(window.AudioContext||window.webkitAudioContext)();
+    const now=a.currentTime;
+    [261.63,329.63,392.00].forEach(f=>{
+        const o=a.createOscillator();
+        const g=a.createGain();
+        o.type="sine";o.frequency.setValueAtTime(f,now);
+        g.gain.setValueAtTime(0.08,now);
+        g.gain.exponentialRampToValueAtTime(0.0001,now+0.4);
+        o.connect(g).connect(a.destination);
+        o.start(now);o.stop(now+0.4);
     });
 }
 </script>
