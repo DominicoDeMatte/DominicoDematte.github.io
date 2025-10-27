@@ -153,30 +153,46 @@ let currentLineIndex = -1;
 let voices = [];
 let isMuted = false;
 let pdfLoaded = false;
+let buttonFlashTimers = new WeakMap(); // prevents stuck green buttons
 
 fileInput.addEventListener('change', handleFileChange);
-processButton.addEventListener('click', handleProcessScript);
+processButton.addEventListener('click', () => { flashButton(processButton); handleProcessScript(); });
 
-// 🔊 Modified nextButton click to include warm chord
 nextButton.addEventListener('click', () => {
-    playClickChord(); // Play soft chord
+    flashButton(nextButton);
+    playClickChord();
     navigateLine(1);
     if (navigator.vibrate) navigator.vibrate(50);
 });
 
-backButton.addEventListener('click', () => navigateLine(-1));
-skipAheadButton.addEventListener('click', skipAhead);
-muteButton.addEventListener('click', toggleMute);
-resetButton.addEventListener('click', resetScene);
-clearButton.addEventListener('click', clearPDF);
+backButton.addEventListener('click', () => { flashButton(backButton); navigateLine(-1); });
+skipAheadButton.addEventListener('click', () => { flashButton(skipAheadButton); skipAhead(); });
+muteButton.addEventListener('click', () => { flashButton(muteButton); toggleMute(); });
+resetButton.addEventListener('click', () => { flashButton(resetButton); resetScene(); });
+clearButton.addEventListener('click', () => { flashButton(clearButton); clearPDF(); });
 
 speechSynthesis.onvoiceschanged = loadVoices;
+
+// ✅ Button flash effect (works on mobile + spam safe)
+function flashButton(btn) {
+    if (buttonFlashTimers.has(btn)) {
+        clearTimeout(buttonFlashTimers.get(btn));
+        buttonFlashTimers.delete(btn);
+    }
+    btn.style.transition = 'background-color 0.15s ease';
+    btn.style.backgroundColor = 'green';
+    btn.style.color = 'white';
+    const timer = setTimeout(() => {
+        btn.style.backgroundColor = 'black';
+        btn.style.color = 'white';
+        buttonFlashTimers.delete(btn);
+    }, 500);
+    buttonFlashTimers.set(btn, timer);
+}
 
 function toggleMute() {
     isMuted = !isMuted;
     muteButton.textContent = isMuted ? "Unmute" : "Mute";
-    muteButton.style.backgroundColor = isMuted ? "green" : "black";
-    muteButton.style.color = "white";
     if (isMuted) speechSynthesis.cancel();
 }
 
@@ -201,7 +217,6 @@ function loadVoices() {
 function handleProcessScript() {
     const file = fileInput.files[0];
     if (!file) return alert("Please upload a script.");
-
     const reader = new FileReader();
     reader.onload = (e) => {
         const typedArray = new Uint8Array(e.target.result);
@@ -230,54 +245,29 @@ function identifyCharacters(scriptText) {
 function displayCharacterSelection(characters, scriptText) {
     outputDiv.innerHTML = '<h2>Select Voice Type for Each Character</h2>';
     const form = document.createElement('form');
-
     characters.forEach(character => {
         const div = document.createElement('div');
         div.style.marginBottom = '10px';
         div.innerHTML = `
             <label style="margin-right:10px;">${character}:</label>
-            <select name="${character}" style="
-                padding:5px 10px; 
-                font-size:16px; 
-                border-radius:5px; 
-                border:2px solid white; 
-                background-color:black; 
-                color:white;
-                ">
+            <select name="${character}" style="padding:5px 10px; font-size:16px; border-radius:5px; border:2px solid white; background-color:black; color:white;">
                 <option value="masc">Masc</option>
                 <option value="fem">Fem</option>
                 <option value="mute">Mute (Show only)</option>
                 <option value="skip">Skip (Completely ignore)</option>
-            </select>
-        `;
+            </select>`;
         form.appendChild(div);
     });
-
     const submitButton = document.createElement('button');
     submitButton.textContent = 'Done';
-    submitButton.style.backgroundColor = 'black';
-    submitButton.style.color = 'white';
-    submitButton.style.border = '2px solid white';
-    submitButton.style.padding = '10px 20px';
-    submitButton.style.fontSize = '18px';
-    submitButton.style.borderRadius = '5px';
-    submitButton.style.cursor = 'pointer';
-
-    submitButton.addEventListener('mouseover', () => {
-        submitButton.style.backgroundColor = 'green';
-        submitButton.style.color = 'white';
-    });
-    submitButton.addEventListener('mouseout', () => {
-        submitButton.style.backgroundColor = 'black';
-        submitButton.style.color = 'white';
-    });
-
+    submitButton.style = "background-color:black;color:white;border:2px solid white;padding:10px 20px;font-size:18px;border-radius:5px;cursor:pointer;";
+    submitButton.addEventListener('mouseover', () => submitButton.style.backgroundColor = 'green');
+    submitButton.addEventListener('mouseout', () => submitButton.style.backgroundColor = 'black');
     submitButton.addEventListener('click', (event) => {
         event.preventDefault();
         new FormData(form).forEach((value, key) => characterChoices[key] = value);
         processScriptWithSelections(scriptText);
     });
-
     form.appendChild(submitButton);
     outputDiv.appendChild(form);
 }
@@ -309,26 +299,16 @@ function navigateLine(direction) {
     while (currentLineIndex >= 0 && currentLineIndex < lines.length && lines[currentLineIndex].choice === 'skip') {
         currentLineIndex += direction;
     }
-
     if (currentLineIndex < 0 || currentLineIndex >= lines.length) {
         controls.style.display = 'none';
         outputDiv.innerHTML = "<h2>No more lines to read!</h2>";
         outputDiv.style.borderColor = "white";
         return;
     }
-
     const { prefix, speaker, line, choice } = lines[currentLineIndex];
     const displayLine = line.replace(/\(.*?\)/g, '').trim();
-
-    // 🔲 Change border to green if muted
-    if (choice === 'mute') {
-        outputDiv.style.borderColor = "green";
-    } else {
-        outputDiv.style.borderColor = "white";
-    }
-
+    outputDiv.style.borderColor = choice === 'mute' ? "green" : "white";
     outputDiv.innerHTML = `<h2>${speaker}: ${displayLine}</h2>`;
-
     if (!isMuted && prefix !== '!!' && prefix !== 'xx') speak(prefix + " " + line, displayLine);
     else speechSynthesis.cancel();
 }
@@ -388,17 +368,14 @@ function speak(originalLine, text) {
 function playClickChord() {
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const now = audioCtx.currentTime;
-    const freqs = [261.63, 329.63, 392.00]; // C major chord
-
+    const freqs = [261.63, 329.63, 392.00];
     freqs.forEach(f => {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-
         osc.type = "sine";
         osc.frequency.setValueAtTime(f, now);
         gain.gain.setValueAtTime(0.08, now);
         gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.4);
-
         osc.connect(gain).connect(audioCtx.destination);
         osc.start(now);
         osc.stop(now + 0.4);
