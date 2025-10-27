@@ -405,13 +405,17 @@ function navigateLine(direction){
     else speechSynthesis.cancel();
     if(isMuted){muteButton.style.backgroundColor='green';muteButton.style.color='white';}
 }
+
+// 🔊 boosted speak function
 function speak(text){
     const u=new SpeechSynthesisUtterance(text);
-    u.volume=settings.volume;
+    const boostedVolume=Math.min(settings.volume*1.5,1.0);
+    u.volume=boostedVolume;
     u.rate=settings.speed;
     speechSynthesis.cancel();
     speechSynthesis.speak(u);
 }
+
 function resetScene(){if(lines.length===0)return;currentLineIndex=-1;navigateLine(1);}
 function clearPDF(){
     pdfLoaded=false;
