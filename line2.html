@@ -155,11 +155,15 @@ let pdfLoaded = false;
 
 fileInput.addEventListener('change', handleFileChange);
 processButton.addEventListener('click', handleProcessScript);
+
+// 🔊 Modified nextButton click to include warm chord
 nextButton.addEventListener('click', () => {
+    playClickChord(); // Play soft chord
     navigateLine(1);
     // Vibrate phone for 50ms
     if (navigator.vibrate) navigator.vibrate(50);
 });
+
 backButton.addEventListener('click', () => navigateLine(-1));
 skipAheadButton.addEventListener('click', skipAhead);
 muteButton.addEventListener('click', toggleMute);
@@ -251,7 +255,6 @@ function displayCharacterSelection(characters, scriptText) {
 
     const submitButton = document.createElement('button');
     submitButton.textContent = 'Done';
-
     submitButton.style.backgroundColor = 'black';
     submitButton.style.color = 'white';
     submitButton.style.border = '2px solid white';
@@ -362,6 +365,29 @@ function speak(originalLine, text) {
     utterance.rate = 0.9;
     speechSynthesis.cancel();
     speechSynthesis.speak(utterance);
+}
+
+// 🔉 Function to play a warm, soft chord when pressing ">"
+function playClickChord() {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const now = audioCtx.currentTime;
+
+    // Gentle C major chord (C4, E4, G4)
+    const freqs = [261.63, 329.63, 392.00];
+
+    freqs.forEach(f => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(f, now);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.4);
+
+        osc.connect(gain).connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.4);
+    });
 }
 </script>
 </body>
