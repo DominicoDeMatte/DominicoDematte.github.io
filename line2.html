@@ -57,7 +57,7 @@ button:hover, input[type="file"]:hover {
 
 /* File name display */
 #fileNameTitle {
-    margin-top: 70px; /* space under top buttons */
+    margin-top: 70px;
     font-size: 18px;
     color: white;
 }
@@ -73,7 +73,7 @@ button:hover, input[type="file"]:hover {
     border-radius: 10px;
     width: 90%;
     max-width: 800px;
-    transition: border-color 0.3s;
+    transition: border-color 0.3s ease;
 }
 
 /* Controls */
@@ -159,46 +159,18 @@ processButton.addEventListener('click', handleProcessScript);
 
 // 🔊 Modified nextButton click to include warm chord
 nextButton.addEventListener('click', () => {
-    playClickChord(); 
-    flashButton(nextButton);
+    playClickChord(); // Play soft chord
     navigateLine(1);
     if (navigator.vibrate) navigator.vibrate(50);
 });
 
-backButton.addEventListener('click', () => {
-    flashButton(backButton);
-    navigateLine(-1);
-});
-skipAheadButton.addEventListener('click', () => {
-    flashButton(skipAheadButton);
-    skipAhead();
-});
-resetButton.addEventListener('click', () => {
-    flashButton(resetButton);
-    resetScene();
-});
-clearButton.addEventListener('click', () => {
-    flashButton(clearButton);
-    clearPDF();
-});
+backButton.addEventListener('click', () => navigateLine(-1));
+skipAheadButton.addEventListener('click', skipAhead);
 muteButton.addEventListener('click', toggleMute);
+resetButton.addEventListener('click', resetScene);
+clearButton.addEventListener('click', clearPDF);
 
 speechSynthesis.onvoiceschanged = loadVoices;
-
-// 🎨 Flash buttons on mobile (except toggles)
-function flashButton(button) {
-    if (/Mobi|Android/i.test(navigator.userAgent)) {
-        if (button === muteButton) return; // skip toggle buttons
-        const originalBg = button.style.backgroundColor;
-        const originalColor = button.style.color;
-        button.style.backgroundColor = 'green';
-        button.style.color = 'white';
-        setTimeout(() => {
-            button.style.backgroundColor = originalBg || 'black';
-            button.style.color = originalColor || 'white';
-        }, 500);
-    }
-}
 
 function toggleMute() {
     isMuted = !isMuted;
@@ -337,19 +309,26 @@ function navigateLine(direction) {
     while (currentLineIndex >= 0 && currentLineIndex < lines.length && lines[currentLineIndex].choice === 'skip') {
         currentLineIndex += direction;
     }
+
     if (currentLineIndex < 0 || currentLineIndex >= lines.length) {
         controls.style.display = 'none';
         outputDiv.innerHTML = "<h2>No more lines to read!</h2>";
         outputDiv.style.borderColor = "white";
         return;
     }
+
     const { prefix, speaker, line, choice } = lines[currentLineIndex];
     const displayLine = line.replace(/\(.*?\)/g, '').trim();
 
-    // 🟢 Highlight border if muted
-    outputDiv.style.borderColor = (choice === 'mute') ? 'green' : 'white';
+    // 🔲 Change border to green if muted
+    if (choice === 'mute') {
+        outputDiv.style.borderColor = "green";
+    } else {
+        outputDiv.style.borderColor = "white";
+    }
 
     outputDiv.innerHTML = `<h2>${speaker}: ${displayLine}</h2>`;
+
     if (!isMuted && prefix !== '!!' && prefix !== 'xx') speak(prefix + " " + line, displayLine);
     else speechSynthesis.cancel();
 }
@@ -395,20 +374,21 @@ function speak(originalLine, text) {
     const utterance = new SpeechSynthesisUtterance(text);
     const isMale = originalLine.startsWith('++');
     const isFemale = originalLine.startsWith('--');
-    utterance.voice = voices.find(voice => isMale ? voice.name.includes('Male') : isFemale ? voice.name.includes('Female') : true) || voices[0];
+    utterance.voice = voices.find(voice => 
+        isMale ? voice.name.includes('Male') : 
+        isFemale ? voice.name.includes('Female') : true
+    ) || voices[0];
     utterance.pitch = 1.2;
     utterance.rate = 0.9;
     speechSynthesis.cancel();
     speechSynthesis.speak(utterance);
 }
 
-// 🔉 Function to play a warm, soft chord when pressing ">"
+// 🔉 Warm, soft chord when pressing ">"
 function playClickChord() {
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const now = audioCtx.currentTime;
-
-    // Gentle C major chord (C4, E4, G4)
-    const freqs = [261.63, 329.63, 392.00];
+    const freqs = [261.63, 329.63, 392.00]; // C major chord
 
     freqs.forEach(f => {
         const osc = audioCtx.createOscillator();
