@@ -10,6 +10,7 @@
         margin: 20px;
         background-color: black;
         color: white;
+        position: relative;
     }
     textarea {
         width: 100%;
@@ -40,6 +41,18 @@
         background-color: green;
         color: white;
     }
+    /* Script Buddy button */
+    #scriptBuddy {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background-color: #fff;
+        color: black;
+    }
+    #scriptBuddy:hover {
+        background-color: green;
+        color: white;
+    }
 </style>
 </head>
 <body>
@@ -55,6 +68,11 @@
 </div>
 <p>Cleaned Script:</p>
 <textarea id="output" readonly></textarea>
+
+<!-- Script Buddy button -->
+<a href="https://dominicodematte.github.io/line" target="_blank">
+    <button id="scriptBuddy">Script Buddy</button>
+</a>
 
 <script>
 async function pasteClipboard(button) {
