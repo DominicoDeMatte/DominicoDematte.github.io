@@ -1,338 +1,460 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ScriptBuddy</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #1e1e1e;
-            color: #f0f0f0;
-            margin: 0;
-            padding: 20px;
-            text-align: center;
-            position: relative;
-            min-height: 100vh;
-        }
-        h1 { font-size: 28px; margin-bottom: 20px; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Script Page</title>
+<style>
+html, body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    font-family: Arial, sans-serif;
+    background-color: black;
+    color: white;
+    height: 100%;
+    width: 100%;
+}
 
-        input[type="file"], button {
-            padding: 10px;
-            font-size: 18px;
-            background-color: #444;
-            color: #f0f0f0;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-            margin-bottom: 20px;
-        }
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 20px;
+    box-sizing: border-box;
+}
 
-        input[type="file"]:hover, button:hover { background-color: #666; }
+/* Top button bar */
+#top-buttons {
+    position: fixed;
+    top: 15px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    z-index: 10;
+}
 
-        #output {
-            white-space: pre-wrap;
-            text-align: left;
-            margin-top: 20px;
-            background-color: #333;
-            padding: 20px;
-            border-radius: 10px;
-        }
+/* Buttons */
+button, input[type="file"] {
+    padding: 10px 20px;
+    font-size: 18px;
+    background-color: black;
+    color: white;
+    border: 2px solid white;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+}
+button:hover, input[type="file"]:hover {
+    background-color: green;
+    color: white;
+}
 
-        /* Layout for the big Next button and others */
-        #controls {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            margin-top: 40px;
-            gap: 30px;
-        }
+/* File name display */
+#fileNameTitle {
+    margin-top: 70px;
+    font-size: 18px;
+}
 
-        #nextButton {
-            width: 200px;
-            height: 200px;
-            border-radius: 50%;
-            font-size: 32px;
-            background-color: #5a5aff;
-            color: white;
-            border: none;
-            cursor: pointer;
-            transition: background-color 0.3s, transform 0.2s;
-        }
+/* Output box */
+#output {
+    white-space: pre-wrap;
+    text-align: left;
+    margin-top: 20px;
+    background-color: black;
+    border: 1px solid white;
+    padding: 20px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 800px;
+    transition: border-color 0.3s ease;
+}
 
-        #nextButton:hover {
-            background-color: #7777ff;
-            transform: scale(1.05);
-        }
+/* Controls */
+#controls {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-top: 40px;
+    gap: 30px;
+}
 
-        .sub-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-        }
+#nextButton {
+    width: calc(100% - 40px);
+    max-width: 800px;
+    height: 130px;
+    border-radius: 20px;
+    font-size: 60px;
+    margin: 0 20px;
+}
 
-        .sub-buttons button {
-            font-size: 18px;
-            padding: 10px 20px;
-            border-radius: 10px;
-        }
+.sub-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+}
 
-        .fixed-bottom {
-            position: absolute;
-            bottom: 20px;
-            left: 0;
-            right: 0;
-        }
+.sub-buttons button {
+    font-size: 18px;
+    padding: 10px 20px;
+    border-radius: 10px;
+}
 
-        #processButton { display: none; }
-    </style>
+/* Settings popup */
+#settingsModal {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: black;
+    border: 2px solid white;
+    border-radius: 10px;
+    padding: 30px;
+    z-index: 20;
+    width: 320px;
+    text-align: center;
+}
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+#settingsModal h2 {
+    margin-top: 0;
+}
+
+#settingsModal label {
+    display: block;
+    margin-top: 15px;
+    font-size: 16px;
+}
+
+#closeSettings {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    font-size: 22px;
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+}
+
+/* Vertical sliders */
+.slider-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+    margin-top: 20px;
+}
+
+.slider-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+input[type="range"] {
+    appearance: slider-vertical;
+    writing-mode: bt-lr;
+    width: 6px;
+    height: 120px;
+    background: white;
+    accent-color: white;
+    cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+    background: white;
+}
+input[type="range"]::-moz-range-thumb {
+    background: white;
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 </head>
 <body>
-    <h1>ScriptBuddy</h1>
-    <input type="file" id="fileInput" accept=".pdf">
-    <h2 id="fileNameTitle"></h2>
 
-    <div id="output"></div>
+<!-- Top button bar -->
+<div id="top-buttons">
+    <button id="clearButton">X</button>
+    <button id="processButton" style="display:none;">Roles</button>
+    <button id="resetButton"><<</button>
+    <button id="settingsButton">?</button>
+</div>
 
-    <!-- Controls with large Next button -->
-    <div id="controls">
-        <button id="nextButton">Next</button>
-        <div class="sub-buttons">
-            <button id="backButton">Back</button>
-            <button id="skipAheadButton">Skip Ahead</button>
-            <button id="muteButton">Mute</button>
+<!-- Settings Modal -->
+<div id="settingsModal">
+    <button id="closeSettings">✖</button>
+    <h2>Settings</h2>
+    <div class="slider-container">
+        <div class="slider-wrapper">
+            <label>Vol</label>
+            <input type="range" id="volumeSlider" min="0" max="1" step="0.05">
+            <span id="volumeValue"></span>
+        </div>
+        <div class="slider-wrapper">
+            <label>Speed</label>
+            <input type="range" id="speedSlider" min="0.5" max="2" step="0.1">
+            <span id="speedValue"></span>
         </div>
     </div>
+</div>
 
-    <!-- Footer -->
-    <div id="footer-buttons" class="fixed-bottom">
-        <button id="processButton">Roles</button>
+<!-- File name display -->
+<h2 id="fileNameTitle"></h2>
+
+<!-- File upload -->
+<input type="file" id="fileInput" accept=".pdf">
+
+<div id="output"></div>
+
+<div id="controls">
+    <button id="nextButton">&gt;</button>
+    <div class="sub-buttons">
+        <button id="backButton">Back</button>
+        <button id="skipAheadButton">Skip Ahead</button>
+        <button id="muteButton">Mute</button>
     </div>
+</div>
 
-    <script>
-        const fileInput = document.getElementById('fileInput');
-        const processButton = document.getElementById('processButton');
-        const outputDiv = document.getElementById('output');
-        const controls = document.getElementById('controls');
-        const nextButton = document.getElementById('nextButton');
-        const backButton = document.getElementById('backButton');
-        const skipAheadButton = document.getElementById('skipAheadButton');
-        const muteButton = document.getElementById('muteButton');
-        const fileNameTitle = document.getElementById('fileNameTitle');
-        const footerButtons = document.getElementById('footer-buttons');
+<script>
+const fileInput=document.getElementById('fileInput');
+const processButton=document.getElementById('processButton');
+const resetButton=document.getElementById('resetButton');
+const clearButton=document.getElementById('clearButton');
+const outputDiv=document.getElementById('output');
+const controls=document.getElementById('controls');
+const nextButton=document.getElementById('nextButton');
+const backButton=document.getElementById('backButton');
+const skipAheadButton=document.getElementById('skipAheadButton');
+const muteButton=document.getElementById('muteButton');
+const fileNameTitle=document.getElementById('fileNameTitle');
+const settingsButton=document.getElementById('settingsButton');
+const settingsModal=document.getElementById('settingsModal');
+const closeSettings=document.getElementById('closeSettings');
+const volumeSlider=document.getElementById('volumeSlider');
+const speedSlider=document.getElementById('speedSlider');
+const volumeValue=document.getElementById('volumeValue');
+const speedValue=document.getElementById('speedValue');
 
-        let characterChoices = {};
-        let lines = [];
-        let currentLineIndex = -1;
-        let voices = [];
-        let isMuted = false;
+let characterChoices={};
+let lines=[];
+let currentLineIndex=-1;
+let voices=[];
+let isMuted=false;
+let pdfLoaded=false;
+let buttonFlashTimers=new WeakMap();
+let settings={
+    volume:parseFloat(localStorage.getItem('volume'))||0.8,
+    speed:parseFloat(localStorage.getItem('speed'))||1.0
+};
 
-        fileInput.addEventListener('change', handleFileChange);
-        processButton.addEventListener('click', handleProcessScript);
-        nextButton.addEventListener('click', () => navigateLine(1));
-        backButton.addEventListener('click', () => navigateLine(-1));
-        skipAheadButton.addEventListener('click', skipAhead);
-        muteButton.addEventListener('click', toggleMute);
-        speechSynthesis.onvoiceschanged = loadVoices;
+volumeSlider.value=settings.volume;
+speedSlider.value=settings.speed;
+volumeValue.textContent=settings.volume.toFixed(2);
+speedValue.textContent=settings.speed.toFixed(1);
 
-        function toggleMute() {
-            isMuted = !isMuted;
-            muteButton.textContent = isMuted ? "Unmute" : "Mute";
-            muteButton.style.backgroundColor = isMuted ? "#a33" : "#444";
-            if (isMuted) speechSynthesis.cancel();
-        }
+volumeSlider.addEventListener('input',()=>{
+    settings.volume=parseFloat(volumeSlider.value);
+    volumeValue.textContent=settings.volume.toFixed(2);
+    localStorage.setItem('volume',settings.volume);
+});
+speedSlider.addEventListener('input',()=>{
+    settings.speed=parseFloat(speedSlider.value);
+    speedValue.textContent=settings.speed.toFixed(1);
+    localStorage.setItem('speed',settings.speed);
+});
 
-        function handleFileChange() {
-            const file = fileInput.files[0];
-            fileNameTitle.textContent = file ? file.name : '';
-            toggleFooter(file);
-            toggleProcessButton(file);
-        }
+function flashButton(btn){
+    if(buttonFlashTimers.has(btn)){
+        clearTimeout(buttonFlashTimers.get(btn));
+        buttonFlashTimers.delete(btn);
+    }
+    btn.style.transition='background-color 0.15s ease';
+    btn.style.backgroundColor='green';
+    btn.style.color='white';
+    const timer=setTimeout(()=>{
+        if(btn===muteButton&&isMuted)return;
+        btn.style.backgroundColor='black';
+        btn.style.color='white';
+        buttonFlashTimers.delete(btn);
+    },500);
+    buttonFlashTimers.set(btn,timer);
+}
 
-        function toggleProcessButton(file) {
-            processButton.style.display = file ? 'inline-block' : 'none';
-        }
+fileInput.addEventListener('change',handleFileChange);
+processButton.addEventListener('click',handleProcessScript);
+nextButton.addEventListener('click',()=>{flashButton(nextButton);playClickChord();navigateLine(1);if(navigator.vibrate)navigator.vibrate(50);});
+backButton.addEventListener('click',()=>{flashButton(backButton);navigateLine(-1);});
+skipAheadButton.addEventListener('click',()=>{flashButton(skipAheadButton);skipAhead();});
+muteButton.addEventListener('click',()=>{flashButton(muteButton);toggleMute();});
+resetButton.addEventListener('click',()=>{flashButton(resetButton);resetScene();});
+clearButton.addEventListener('click',()=>{flashButton(clearButton);clearPDF();});
+settingsButton.addEventListener('click',()=>settingsModal.style.display='block');
+closeSettings.addEventListener('click',()=>settingsModal.style.display='none');
 
-        function loadVoices() {
-            voices = speechSynthesis.getVoices();
-        }
+speechSynthesis.onvoiceschanged=loadVoices;
 
-        function toggleFooter(file) {
-            if (file || controls.style.display !== 'none') {
-                fileInput.style.display = 'none';
-                footerButtons.classList.remove('fixed-bottom');
-            } else {
-                fileInput.style.display = 'inline-block';
-                footerButtons.classList.add('fixed-bottom');
-            }
-        }
+function toggleMute(){
+    isMuted=!isMuted;
+    muteButton.textContent=isMuted?"Unmute":"Mute";
+    muteButton.style.backgroundColor=isMuted?"green":"black";
+    muteButton.style.color="white";
+    if(isMuted)speechSynthesis.cancel();
+}
 
-        function handleProcessScript() {
-            const file = fileInput.files[0];
-            if (!file) return alert("Please upload a script.");
+function handleFileChange(){
+    const file=fileInput.files[0];
+    if(file){
+        pdfLoaded=true;
+        fileInput.style.display="none";
+        fileNameTitle.textContent=stripExtension(file.name);
+        processButton.style.display="inline-block";
+    }
+}
+function stripExtension(filename){return filename.replace(/\.[^/.]+$/,"");}
+function loadVoices(){voices=speechSynthesis.getVoices();}
 
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const typedArray = new Uint8Array(e.target.result);
-                pdfjsLib.getDocument(typedArray).promise.then(pdf =>
-                    Promise.all(Array.from({ length: pdf.numPages }, (_, i) =>
-                        pdf.getPage(i + 1).then(page => page.getTextContent()))))
-                    .then(textContentArray => {
-                        const fullText = textContentArray.flatMap(textContent =>
-                            textContent.items.map(item => item.str)).join(' ');
-                        identifyCharacters(fullText);
-                    });
-            };
-            reader.readAsArrayBuffer(file);
-        }
+function handleProcessScript(){
+    const file=fileInput.files[0];
+    if(!file)return alert("Please upload a script.");
+    const reader=new FileReader();
+    reader.onload=(e)=>{
+        const typedArray=new Uint8Array(e.target.result);
+        pdfjsLib.getDocument(typedArray).promise.then(pdf=>
+            Promise.all(Array.from({length:pdf.numPages},(_,i)=>pdf.getPage(i+1).then(p=>p.getTextContent())))
+        ).then(arr=>{
+            const fullText=arr.flatMap(tc=>tc.items.map(i=>i.str)).join(' ');
+            identifyCharacters(fullText);
+        });
+    };
+    reader.readAsArrayBuffer(file);
+}
 
-        function identifyCharacters(scriptText) {
-            const regex = /([A-Z]{2,})[,.]\s*(.+?)(?=[A-Z]{2,}[,.]\s*|$)/gs;
-            const characters = new Set();
-            let match;
+function identifyCharacters(scriptText){
+    const regex=/([A-Z]{2,})[,.]\s*(.+?)(?=[A-Z]{2,}[,.]\s*|$)/gs;
+    const chars=new Set();
+    let match;
+    while((match=regex.exec(scriptText))!==null)chars.add(match[1].trim());
+    if(chars.size>0)displayCharacterSelection([...chars],scriptText);
+    else alert("No characters found.");
+}
 
-            while ((match = regex.exec(scriptText)) !== null) {
-                characters.add(match[1].trim());
-            }
+function displayCharacterSelection(chars,scriptText){
+    outputDiv.innerHTML='<h2>Select Voice Type for Each Character</h2>';
+    const form=document.createElement('form');
+    chars.forEach(ch=>{
+        const div=document.createElement('div');
+        div.style.marginBottom='10px';
+        div.innerHTML=`<label>${ch}:</label>
+        <select name="${ch}" style="margin-left:10px;background:black;color:white;border:2px solid white;border-radius:5px;padding:5px;">
+            <option value="masc">Masc</option>
+            <option value="fem">Fem</option>
+            <option value="mute">Mute</option>
+            <option value="skip">Skip</option>
+        </select>`;
+        form.appendChild(div);
+    });
+    const done=document.createElement('button');
+    done.textContent="Done";
+    done.style="background:black;color:white;border:2px solid white;border-radius:5px;padding:10px 20px;";
+    done.addEventListener('click',e=>{
+        e.preventDefault();
+        new FormData(form).forEach((v,k)=>characterChoices[k]=v);
+        processScriptWithSelections(scriptText);
+    });
+    form.appendChild(done);
+    outputDiv.appendChild(form);
+}
 
-            if (characters.size > 0) {
-                displayCharacterSelection([...characters], scriptText);
-            } else {
-                alert("No characters found.");
-            }
-        }
+function processScriptWithSelections(scriptText){
+    const regex=/([A-Z]{2,})[,.]\s*(.+?)(?=[A-Z]{2,}[,.]\s*|$)/gs;
+    lines=[];
+    let match;
+    while((match=regex.exec(scriptText))!==null){
+        const speaker=match[1].trim();
+        const line=match[2].trim();
+        const choice=characterChoices[speaker];
+        const prefix=getPrefix(choice);
+        lines.push({prefix,speaker,line,choice});
+    }
+    controls.style.display='flex';
+    navigateLine(1);
+}
+function getPrefix(choice){
+    return choice==='masc'?'++':choice==='fem'?'--':choice==='mute'?'!!':choice==='skip'?'xx':'';
+}
+function navigateLine(direction){
+    currentLineIndex+=direction;
+    while(currentLineIndex>=0&&currentLineIndex<lines.length&&lines[currentLineIndex].choice==='skip')
+        currentLineIndex+=direction;
+    if(currentLineIndex<0||currentLineIndex>=lines.length){
+        controls.style.display='none';
+        outputDiv.innerHTML="<h2>No more lines to read!</h2>";
+        outputDiv.style.borderColor="white";
+        return;
+    }
+    const{speaker,line,choice}=lines[currentLineIndex];
+    const clean=line.replace(/\(.*?\)/g,'').trim();
+    outputDiv.style.borderColor=(choice==='mute')?'green':'white';
+    outputDiv.innerHTML=`<h2>${speaker}: ${clean}</h2>`;
+    if(!isMuted&&choice!=='mute'&&choice!=='skip')speak(line);
+    else speechSynthesis.cancel();
+    if(isMuted){muteButton.style.backgroundColor='green';muteButton.style.color='white';}
+}
 
-        function displayCharacterSelection(characters, scriptText) {
-            outputDiv.innerHTML = '<h2>Select Voice Type for Each Character</h2>';
-            const form = document.createElement('form');
-            
-            characters.forEach(character => {
-                const div = document.createElement('div');
-                div.innerHTML = `
-                    <label>${character}:</label>
-                    <select name="${character}">
-                        <option value="masc">Masc</option>
-                        <option value="fem">Fem</option>
-                        <option value="mute">Mute (Show only)</option>
-                        <option value="skip">Skip (Completely ignore)</option>
-                    </select>`;
-                form.appendChild(div);
-            });
+// 🔊 boosted speak function
+function speak(text){
+    const u=new SpeechSynthesisUtterance(text);
+    const boostedVolume=Math.min(settings.volume*1.5,1.0);
+    u.volume=boostedVolume;
+    u.rate=settings.speed;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
+}
 
-            const submitButton = document.createElement('button');
-            submitButton.textContent = 'Done';
-            submitButton.addEventListener('click', (event) => {
-                event.preventDefault();
-                new FormData(form).forEach((value, key) => characterChoices[key] = value);
-                processScriptWithSelections(scriptText);
-            });
-
-            form.appendChild(submitButton);
-            outputDiv.appendChild(form);
-            toggleFooter(true);
-        }
-
-        function processScriptWithSelections(scriptText) {
-            const regex = /([A-Z]{2,})[,.]\s*(.+?)(?=[A-Z]{2,}[,.]\s*|$)/gs;
-            lines = [];
-
-            let match;
-            while ((match = regex.exec(scriptText)) !== null) {
-                const speaker = match[1].trim();
-                const line = match[2].trim();
-                const choice = characterChoices[speaker];
-                const prefix = getPrefix(choice);
-                lines.push({ prefix, speaker, line, choice });
-            }
-
-            controls.style.display = 'flex';
-            navigateLine(1);
-        }
-
-        function getPrefix(choice) {
-            return choice === 'masc' ? '++' :
-                   choice === 'fem' ? '--' :
-                   choice === 'mute' ? '!!' :
-                   choice === 'skip' ? 'xx' : '';
-        }
-
-        function cleanLine(line) {
-            return line.replace(/\(.*?\)/g, '').trim();
-        }
-
-        function navigateLine(direction) {
-            currentLineIndex += direction;
-
-            // skip lines marked as "skip"
-            while (currentLineIndex >= 0 && currentLineIndex < lines.length && lines[currentLineIndex].choice === 'skip') {
-                currentLineIndex += direction;
-            }
-
-            if (currentLineIndex < 0 || currentLineIndex >= lines.length) {
-                controls.style.display = 'none';
-                outputDiv.innerHTML = "<h2>No more lines to read!</h2>";
-                return;
-            }
-
-            const { prefix, speaker, line, choice } = lines[currentLineIndex];
-            const displayLine = cleanLine(line);
-
-            displayLineOnScreen(speaker, displayLine);
-
-            if (!isMuted && prefix !== '!!' && prefix !== 'xx') {
-                speak(prefix + " " + line, displayLine);
-            } else {
-                speechSynthesis.cancel();
-            }
-        }
-
-        function skipAhead() {
-            let nextIndex = -1;
-            for (let i = currentLineIndex + 1; i < lines.length; i++) {
-                if (lines[i].choice === 'mute' || lines[i].choice === 'skip') {
-                    nextIndex = i;
-                    break;
-                }
-            }
-
-            if (nextIndex === -1 || nextIndex <= currentLineIndex + 1) {
-                // no skipped/muted ahead, go to end
-                currentLineIndex = lines.length;
-                controls.style.display = 'none';
-                outputDiv.innerHTML = "<h2>No more lines to read!</h2>";
-                return;
-            }
-
-            // go to the line right before the next muted/skipped one
-            currentLineIndex = nextIndex - 1;
-            navigateLine(0);
-        }
-
-        function displayLineOnScreen(speaker, line) {
-            outputDiv.innerHTML = `<h2>${speaker}: ${line}</h2>`;
-        }
-
-        function speak(originalLine, text) {
-            const utterance = new SpeechSynthesisUtterance(text);
-            const isMale = originalLine.startsWith('++');
-            const isFemale = originalLine.startsWith('--');
-
-            utterance.voice = voices.find(voice =>
-                isMale ? voice.name.includes('Male') :
-                isFemale ? voice.name.includes('Female') :
-                true
-            ) || voices[0];
-
-            utterance.pitch = 1.2;
-            utterance.rate = 0.9;
-
-            speechSynthesis.cancel();
-            speechSynthesis.speak(utterance);
-        }
-    </script>
+function resetScene(){if(lines.length===0)return;currentLineIndex=-1;navigateLine(1);}
+function clearPDF(){
+    pdfLoaded=false;
+    fileInput.value="";
+    fileInput.style.display="inline-block";
+    fileNameTitle.textContent="";
+    outputDiv.innerHTML="";
+    controls.style.display="none";
+    processButton.style.display="none";
+    speechSynthesis.cancel();
+    outputDiv.style.borderColor="white";
+}
+function skipAhead(){
+    let next=-1;
+    for(let i=currentLineIndex+1;i<lines.length;i++)
+        if(lines[i].choice==='mute'||lines[i].choice==='skip'){next=i;break;}
+    if(next===-1){
+        currentLineIndex=lines.length;
+        controls.style.display='none';
+        outputDiv.innerHTML="<h2>No more lines to read!</h2>";
+        outputDiv.style.borderColor="white";
+        return;
+    }
+    currentLineIndex=next-1;
+    navigateLine(0);
+}
+function playClickChord(){
+    const a=new(window.AudioContext||window.webkitAudioContext)();
+    const now=a.currentTime;
+    [261.63,329.63,392.00].forEach(f=>{
+        const o=a.createOscillator();
+        const g=a.createGain();
+        o.type="sine";o.frequency.setValueAtTime(f,now);
+        g.gain.setValueAtTime(0.08,now);
+        g.gain.exponentialRampToValueAtTime(0.0001,now+0.4);
+        o.connect(g).connect(a.destination);
+        o.start(now);o.stop(now+0.4);
+    });
+}
+</script>
 </body>
 </html>
