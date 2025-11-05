@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>1 Script Page</title>
+<title>Script Page</title>
 <style>
 html, body {
     margin: 0;
@@ -47,7 +47,7 @@ button:hover, input[type="file"]:hover { background-color: green; }
 /* File title */
 #fileNameTitle { margin-top: 70px; font-size: 18px; }
 
-/* Output */
+/* Output box */
 #output { width: 90%; max-width: 800px; margin-top: 20px; }
 #lineContainer {
     position: relative;
@@ -55,17 +55,8 @@ button:hover, input[type="file"]:hover { background-color: green; }
     border-radius: 10px;
     background-color: black;
     overflow: hidden;
-    height: auto;
+    border: 3px solid white; /* default border */
 }
-.border-left, .border-right {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 5px;
-    background-color: transparent;
-}
-.border-left { left: 0; }
-.border-right { right: 0; }
 .lineContent { padding: 20px; color: white; }
 
 /* Controls */
@@ -134,8 +125,6 @@ input[type="range"]::-moz-range-thumb { background:white; }
 <!-- Output -->
 <div id="output">
     <div id="lineContainer">
-        <div class="border-left"></div>
-        <div class="border-right"></div>
         <div class="lineContent"></div>
     </div>
 </div>
@@ -171,7 +160,6 @@ const volumeValue=document.getElementById('volumeValue');
 const speedValue=document.getElementById('speedValue');
 
 let characterChoices={}, lines=[], currentLineIndex=-1, isMuted=false, pdfLoaded=false;
-let buttonFlashTimers=new WeakMap();
 let settings={volume:parseFloat(localStorage.getItem('volume'))||0.8, speed:parseFloat(localStorage.getItem('speed'))||1.0};
 
 volumeSlider.value=settings.volume;
@@ -191,16 +179,14 @@ speedSlider.addEventListener('input',()=>{
 });
 
 function flashButton(btn){
-    if(buttonFlashTimers.has(btn)){clearTimeout(buttonFlashTimers.get(btn));buttonFlashTimers.delete(btn);}
     btn.style.transition='background-color 0.15s ease';
     btn.style.backgroundColor='green';btn.style.color='white';
-    const timer=setTimeout(()=>{if(btn===muteButton&&isMuted)return;btn.style.backgroundColor='black';btn.style.color='white';buttonFlashTimers.delete(btn);},500);
-    buttonFlashTimers.set(btn,timer);
+    setTimeout(()=>{if(!(btn===muteButton && isMuted)){btn.style.backgroundColor='black';btn.style.color='white';}},500);
 }
 
 fileInput.addEventListener('change',handleFileChange);
 processButton.addEventListener('click',handleProcessScript);
-nextButton.addEventListener('click',()=>{flashButton(nextButton);playClickChord();navigateLine(1);});
+nextButton.addEventListener('click',()=>{flashButton(nextButton);navigateLine(1);});
 backButton.addEventListener('click',()=>{flashButton(backButton);navigateLine(-1);});
 skipAheadButton.addEventListener('click',()=>{flashButton(skipAheadButton);skipAhead();});
 muteButton.addEventListener('click',()=>{flashButton(muteButton);toggleMute();});
@@ -211,13 +197,14 @@ closeSettings.addEventListener('click',()=>settingsModal.style.display='none');
 
 speechSynthesis.onvoiceschanged=()=>{voices=speechSynthesis.getVoices();};
 
-function toggleMute(){isMuted=!isMuted;muteButton.textContent=isMuted?"Unmute":"Mute";muteButton.style.backgroundColor=isMuted?"green":"black";muteButton.style.color="white";if(isMuted)speechSynthesis.cancel();}
+function toggleMute(){isMuted=!isMuted;muteButton.textContent=isMuted?"Unmute":"Mute";muteButton.style.backgroundColor=isMuted?"green":"black";muteButton.style.color="white"; if(isMuted)speechSynthesis.cancel();}
 
-function handleFileChange(){const file=fileInput.files[0];if(file){pdfLoaded=true;fileInput.style.display="none";fileNameTitle.textContent=stripExtension(file.name);processButton.style.display="inline-block";}}
-function stripExtension(filename){return filename.replace(/\.[^/.]+$/,"");}
+function handleFileChange(){
+    const file=fileInput.files[0]; if(file){pdfLoaded=true;fileInput.style.display="none"; fileNameTitle.textContent=file.name; processButton.style.display="inline-block";}
+}
 
 function handleProcessScript(){
-    const file=fileInput.files[0];if(!file)return alert("Please upload a script.");
+    const file=fileInput.files[0]; if(!file)return alert("Please upload a script.");
     const reader=new FileReader();
     reader.onload=(e)=>{
         const typedArray=new Uint8Array(e.target.result);
@@ -233,14 +220,15 @@ function handleProcessScript(){
 
 function identifyCharacters(scriptText){
     const regex=/([A-Z]{2,})[,.]\s*(.+?)(?=[A-Z]{2,}[,.]\s*|$)/gs;
-    const chars=new Set();let match;
+    const chars=new Set(); let match;
     while((match=regex.exec(scriptText))!==null) chars.add(match[1].trim());
     if(chars.size>0) displayCharacterSelection([...chars],scriptText);
     else alert("No characters found.");
 }
 
 function displayCharacterSelection(chars,scriptText){
-    lineContainer.querySelector('.lineContent').innerHTML='<h2>Select Voice Type for Each Character</h2>';
+    const content=lineContainer.querySelector('.lineContent');
+    content.innerHTML='<h2>Select Voice Type for Each Character</h2>';
     const form=document.createElement('form');
     chars.forEach(ch=>{
         const div=document.createElement('div');
@@ -263,12 +251,12 @@ function displayCharacterSelection(chars,scriptText){
         processScriptWithSelections(scriptText);
     });
     form.appendChild(done);
-    lineContainer.querySelector('.lineContent').appendChild(form);
+    content.appendChild(form);
 }
 
 function processScriptWithSelections(scriptText){
     const regex=/([A-Z]{2,})[,.]\s*(.+?)(?=[A-Z]{2,}[,.]\s*|$)/gs;
-    lines=[];let match;
+    lines=[]; let match;
     while((match=regex.exec(scriptText))!==null){
         const speaker=match[1].trim();
         const line=match[2].trim();
@@ -286,40 +274,27 @@ function navigateLine(direction){
         controls.style.display='none';
         lineContainer.querySelector('.lineContent').innerHTML="<h2>No more lines to read!</h2>";
         lineContainer.style.border='3px solid white';
-        lineContainer.querySelector('.border-left').style.backgroundColor='transparent';
-        lineContainer.querySelector('.border-right').style.backgroundColor='transparent';
         return;
     }
     const {speaker,line,choice}=lines[currentLineIndex];
     const clean=line.replace(/\(.*?\)/g,'').trim();
-    const container=lineContainer;
-    const content=container.querySelector('.lineContent');
-    const left=container.querySelector('.border-left');
-    const right=container.querySelector('.border-right');
-    content.innerHTML=`<h2>${speaker}: ${clean}</h2>`;
-    container.style.border='3px solid white';
-    left.style.backgroundColor='transparent';
-    right.style.backgroundColor='transparent';
+    lineContainer.querySelector('.lineContent').innerHTML=`<h2>${speaker}: ${clean}</h2>`;
+
+    // Determine border color
     const prev=lines[currentLineIndex-1]?.choice;
     const next=lines[currentLineIndex+1]?.choice;
-
-    if(choice==='mute'||choice==='skip'){ container.style.border='3px solid green'; }
-    else if(next==='mute'||next==='skip'){ container.style.border='3px solid yellow'; }
-    if(prev && (prev==='mute'||prev==='skip') && choice==='mute'){
-        container.style.border='none';
-        left.style.backgroundColor='green';
-        right.style.backgroundColor='yellow';
-    }
+    if(choice==='mute'||choice==='skip'){ lineContainer.style.border='3px solid green'; }
+    else if(next==='mute'||next==='skip'){ lineContainer.style.border='3px solid yellow'; }
+    else{ lineContainer.style.border='3px solid white'; }
 
     if(!isMuted && choice!=='mute' && choice!=='skip') speak(line);
     else speechSynthesis.cancel();
 }
 
 function resetScene(){if(lines.length===0)return;currentLineIndex=-1;navigateLine(0);}
-function clearPDF(){pdfLoaded=false;fileInput.value="";fileInput.style.display="inline-block";fileNameTitle.textContent="";lineContainer.querySelector('.lineContent').innerHTML="";controls.style.display="none";processButton.style.display="none";speechSynthesis.cancel();lineContainer.style.border='3px solid white';lineContainer.querySelector('.border-left').style.backgroundColor='transparent';lineContainer.querySelector('.border-right').style.backgroundColor='transparent';}
+function clearPDF(){pdfLoaded=false;fileInput.value="";fileInput.style.display="inline-block";fileNameTitle.textContent="";lineContainer.querySelector('.lineContent').innerHTML="";controls.style.display="none";processButton.style.display="none";speechSynthesis.cancel();lineContainer.style.border='3px solid white';}
 function skipAhead(){let next=-1;for(let i=currentLineIndex+1;i<lines.length;i++) if(lines[i].choice==='mute'||lines[i].choice==='skip'){next=i;break;} if(next===-1){currentLineIndex=lines.length;controls.style.display='none';lineContainer.querySelector('.lineContent').innerHTML="<h2>No more lines to read!</h2>";return;} currentLineIndex=next-1;navigateLine(0);}
 function speak(text){const u=new SpeechSynthesisUtterance(text); u.volume=Math.min(settings.volume*1.5,1.0); u.rate=settings.speed; speechSynthesis.cancel(); speechSynthesis.speak(u);}
-function playClickChord(){const a=new(window.AudioContext||window.webkitAudioContext)();const now=a.currentTime;[261.63,329.63,392.00].forEach(f=>{const o=a.createOscillator();const g=a.createGain();o.type="sine";o.frequency.setValueAtTime(f,now);g.gain.setValueAtTime(0.08,now);g.gain.exponentialRampToValueAtTime(0.0001,now+0.4);o.connect(g).connect(a.destination);o.start(now);o.stop(now+0.4);});}
 </script>
 </body>
 </html>
