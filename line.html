@@ -8,21 +8,20 @@
 html, body {
     margin: 0;
     padding: 0;
-    overflow-x: hidden;
     font-family: Arial, sans-serif;
     background-color: black;
     color: white;
-    height: 100%;
     width: 100%;
 }
 body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
     padding: 20px;
     box-sizing: border-box;
 }
+
+/* Top buttons */
 #top-buttons {
     position: fixed;
     top: 15px;
@@ -41,59 +40,47 @@ button, input[type="file"] {
     border: 2px solid white;
     border-radius: 5px;
     cursor: pointer;
-    transition: background-color 0.3s, color 0.3s;
+    transition: background-color 0.3s;
 }
-button:hover, input[type="file"]:hover { background-color: green; color: white; }
+button:hover, input[type="file"]:hover { background-color: green; }
+
+/* File title */
 #fileNameTitle { margin-top: 70px; font-size: 18px; }
-#output {
-    width: 90%;
-    max-width: 800px;
-    margin-top: 20px;
-    position: relative;
-}
+
+/* Output */
+#output { width: 90%; max-width: 800px; margin-top: 20px; }
 #lineContainer {
-    padding: 20px;
+    position: relative;
+    width: 100%;
     border-radius: 10px;
-    border: 3px solid white;
-    transition: border 0.3s ease, background 0.3s ease;
     background-color: black;
-    color: white;
+    overflow: hidden;
+    height: auto;
 }
-/* Line styles */
-#lineContainer.muted, #lineContainer.skipped { border: 3px solid green; background-color: black; }
-#lineContainer.before-muted { border: 3px solid yellow; background-color: black; }
-#lineContainer.half-border { border: 3px solid transparent; background: linear-gradient(to right, green 50%, yellow 50%); color: white; }
-#controls {
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    margin-top: 40px;
-    gap: 30px;
+.border-left, .border-right {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    background-color: transparent;
 }
-#nextButton {
-    width: calc(100% - 40px);
-    max-width: 800px;
-    height: 130px;
-    border-radius: 20px;
-    font-size: 60px;
-    margin: 0 20px;
-}
-.sub-buttons {
-    display: flex;
-    justify-content: center;
-    gap: 30px;
-}
-.sub-buttons button {
-    font-size: 18px;
-    padding: 10px 20px;
-    border-radius: 10px;
-}
+.border-left { left: 0; }
+.border-right { right: 0; }
+.lineContent { padding: 20px; color: white; }
+
+/* Controls */
+#controls { display: none; flex-direction: column; align-items: center; margin-top: 40px; gap: 30px; }
+#nextButton { width: calc(100% - 40px); max-width: 800px; height: 130px; border-radius: 20px; font-size: 60px; }
+.sub-buttons { display: flex; justify-content: center; gap: 30px; }
+.sub-buttons button { font-size: 18px; padding: 10px 20px; border-radius: 10px; }
+
+/* Settings */
 #settingsModal {
     display: none;
     position: fixed;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%,-50%);
     background-color: black;
     border: 2px solid white;
     border-radius: 10px;
@@ -102,46 +89,20 @@ button:hover, input[type="file"]:hover { background-color: green; color: white; 
     width: 320px;
     text-align: center;
 }
-#settingsModal h2 { margin-top: 0; }
+#settingsModal h2 { margin-top:0; }
 #settingsModal label { display: block; margin-top: 15px; font-size: 16px; }
-#closeSettings {
-    position: absolute;
-    top: 8px;
-    right: 10px;
-    font-size: 22px;
-    background: none;
-    border: none;
-    color: white;
-    cursor: pointer;
-}
-.slider-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 40px;
-    margin-top: 20px;
-}
-.slider-wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-input[type="range"] {
-    appearance: slider-vertical;
-    writing-mode: bt-lr;
-    width: 6px;
-    height: 120px;
-    background: white;
-    accent-color: white;
-    cursor: pointer;
-}
-input[type="range"]::-webkit-slider-thumb { background: white; }
-input[type="range"]::-moz-range-thumb { background: white; }
+#closeSettings { position: absolute; top: 8px; right: 10px; font-size: 22px; background:none; border:none; color:white; cursor:pointer; }
+.slider-container { display: flex; justify-content:center; align-items:center; gap:40px; margin-top:20px; }
+.slider-wrapper { display: flex; flex-direction: column; align-items: center; }
+input[type="range"] { writing-mode: bt-lr; width: 6px; height: 120px; background: white; accent-color:white; cursor:pointer; }
+input[type="range"]::-webkit-slider-thumb { background:white; }
+input[type="range"]::-moz-range-thumb { background:white; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 </head>
 <body>
 
+<!-- Top buttons -->
 <div id="top-buttons">
     <button id="clearButton">X</button>
     <button id="processButton" style="display:none;">Roles</button>
@@ -149,6 +110,7 @@ input[type="range"]::-moz-range-thumb { background: white; }
     <button id="settingsButton">?</button>
 </div>
 
+<!-- Settings modal -->
 <div id="settingsModal">
     <button id="closeSettings">✖</button>
     <h2>Settings</h2>
@@ -168,8 +130,17 @@ input[type="range"]::-moz-range-thumb { background: white; }
 
 <h2 id="fileNameTitle"></h2>
 <input type="file" id="fileInput" accept=".pdf">
-<div id="output"><div id="lineContainer"></div></div>
 
+<!-- Output -->
+<div id="output">
+    <div id="lineContainer">
+        <div class="border-left"></div>
+        <div class="border-right"></div>
+        <div class="lineContent"></div>
+    </div>
+</div>
+
+<!-- Controls -->
 <div id="controls">
     <button id="nextButton">&gt;</button>
     <div class="sub-buttons">
@@ -262,14 +233,14 @@ function handleProcessScript(){
 
 function identifyCharacters(scriptText){
     const regex=/([A-Z]{2,})[,.]\s*(.+?)(?=[A-Z]{2,}[,.]\s*|$)/gs;
-    const chars=new Set(); let match;
-    while((match=regex.exec(scriptText))!==null)chars.add(match[1].trim());
-    if(chars.size>0)displayCharacterSelection([...chars],scriptText);
+    const chars=new Set();let match;
+    while((match=regex.exec(scriptText))!==null) chars.add(match[1].trim());
+    if(chars.size>0) displayCharacterSelection([...chars],scriptText);
     else alert("No characters found.");
 }
 
 function displayCharacterSelection(chars,scriptText){
-    lineContainer.innerHTML='<h2>Select Voice Type for Each Character</h2>';
+    lineContainer.querySelector('.lineContent').innerHTML='<h2>Select Voice Type for Each Character</h2>';
     const form=document.createElement('form');
     chars.forEach(ch=>{
         const div=document.createElement('div');
@@ -292,13 +263,12 @@ function displayCharacterSelection(chars,scriptText){
         processScriptWithSelections(scriptText);
     });
     form.appendChild(done);
-    lineContainer.appendChild(form);
+    lineContainer.querySelector('.lineContent').appendChild(form);
 }
 
 function processScriptWithSelections(scriptText){
     const regex=/([A-Z]{2,})[,.]\s*(.+?)(?=[A-Z]{2,}[,.]\s*|$)/gs;
-    lines=[];
-    let match;
+    lines=[];let match;
     while((match=regex.exec(scriptText))!==null){
         const speaker=match[1].trim();
         const line=match[2].trim();
@@ -306,50 +276,49 @@ function processScriptWithSelections(scriptText){
         lines.push({speaker,line,choice});
     }
     controls.style.display='flex';
-    navigateLine(1);
+    navigateLine(0);
 }
 
-// 🎨 Navigate line with proper borders
 function navigateLine(direction){
-    currentLineIndex += direction;
-    if(currentLineIndex < 0) currentLineIndex = 0;
-    if(currentLineIndex >= lines.length){
+    currentLineIndex+=direction;
+    if(currentLineIndex<0) currentLineIndex=0;
+    if(currentLineIndex>=lines.length){
         controls.style.display='none';
-        lineContainer.innerHTML="<h2>No more lines to read!</h2>";
-        lineContainer.className = '';
+        lineContainer.querySelector('.lineContent').innerHTML="<h2>No more lines to read!</h2>";
+        lineContainer.style.border='3px solid white';
+        lineContainer.querySelector('.border-left').style.backgroundColor='transparent';
+        lineContainer.querySelector('.border-right').style.backgroundColor='transparent';
         return;
     }
+    const {speaker,line,choice}=lines[currentLineIndex];
+    const clean=line.replace(/\(.*?\)/g,'').trim();
+    const container=lineContainer;
+    const content=container.querySelector('.lineContent');
+    const left=container.querySelector('.border-left');
+    const right=container.querySelector('.border-right');
+    content.innerHTML=`<h2>${speaker}: ${clean}</h2>`;
+    container.style.border='3px solid white';
+    left.style.backgroundColor='transparent';
+    right.style.backgroundColor='transparent';
+    const prev=lines[currentLineIndex-1]?.choice;
+    const next=lines[currentLineIndex+1]?.choice;
 
-    const {speaker,line,choice} = lines[currentLineIndex];
-    const clean = line.replace(/\(.*?\)/g,'').trim();
-
-    lineContainer.innerHTML = `<h2>${speaker}: ${clean}</h2>`;
-    lineContainer.className = '';
-
-    const prev = lines[currentLineIndex-1]?.choice;
-    const next = lines[currentLineIndex+1]?.choice;
-
-    if(choice==='mute') lineContainer.classList.add('muted');
-    else if(choice==='skip') lineContainer.classList.add('skipped');
-    else if(next==='mute' || next==='skip') lineContainer.classList.add('before-muted');
-    else if(prev && (prev==='mute'||prev==='skip') && next==='mute') lineContainer.classList.add('half-border');
+    if(choice==='mute'||choice==='skip'){ container.style.border='3px solid green'; }
+    else if(next==='mute'||next==='skip'){ container.style.border='3px solid yellow'; }
+    if(prev && (prev==='mute'||prev==='skip') && choice==='mute'){
+        container.style.border='none';
+        left.style.backgroundColor='green';
+        right.style.backgroundColor='yellow';
+    }
 
     if(!isMuted && choice!=='mute' && choice!=='skip') speak(line);
     else speechSynthesis.cancel();
 }
 
-function resetScene(){if(lines.length===0)return;currentLineIndex=-1;navigateLine(1);}
-function clearPDF(){pdfLoaded=false;fileInput.value="";fileInput.style.display="inline-block";fileNameTitle.textContent="";lineContainer.innerHTML="";controls.style.display="none";processButton.style.display="none";speechSynthesis.cancel();lineContainer.style.border="3px solid white";}
-function skipAhead(){
-    let next=-1;
-    for(let i=currentLineIndex+1;i<lines.length;i++)
-        if(lines[i].choice==='mute'||lines[i].choice==='skip'){next=i;break;}
-    if(next===-1){currentLineIndex=lines.length;controls.style.display='none';lineContainer.innerHTML="<h2>No more lines to read!</h2>";lineContainer.className='';return;}
-    currentLineIndex=next-1;
-    navigateLine(0);
-}
-
-function speak(text){const u=new SpeechSynthesisUtterance(text);u.volume=Math.min(settings.volume*1.5,1.0);u.rate=settings.speed;speechSynthesis.cancel();speechSynthesis.speak(u);}
+function resetScene(){if(lines.length===0)return;currentLineIndex=-1;navigateLine(0);}
+function clearPDF(){pdfLoaded=false;fileInput.value="";fileInput.style.display="inline-block";fileNameTitle.textContent="";lineContainer.querySelector('.lineContent').innerHTML="";controls.style.display="none";processButton.style.display="none";speechSynthesis.cancel();lineContainer.style.border='3px solid white';lineContainer.querySelector('.border-left').style.backgroundColor='transparent';lineContainer.querySelector('.border-right').style.backgroundColor='transparent';}
+function skipAhead(){let next=-1;for(let i=currentLineIndex+1;i<lines.length;i++) if(lines[i].choice==='mute'||lines[i].choice==='skip'){next=i;break;} if(next===-1){currentLineIndex=lines.length;controls.style.display='none';lineContainer.querySelector('.lineContent').innerHTML="<h2>No more lines to read!</h2>";return;} currentLineIndex=next-1;navigateLine(0);}
+function speak(text){const u=new SpeechSynthesisUtterance(text); u.volume=Math.min(settings.volume*1.5,1.0); u.rate=settings.speed; speechSynthesis.cancel(); speechSynthesis.speak(u);}
 function playClickChord(){const a=new(window.AudioContext||window.webkitAudioContext)();const now=a.currentTime;[261.63,329.63,392.00].forEach(f=>{const o=a.createOscillator();const g=a.createGain();o.type="sine";o.frequency.setValueAtTime(f,now);g.gain.setValueAtTime(0.08,now);g.gain.exponentialRampToValueAtTime(0.0001,now+0.4);o.connect(g).connect(a.destination);o.start(now);o.stop(now+0.4);});}
 </script>
 </body>
