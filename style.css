@@ -1,167 +1,157 @@
 html, body {
-    margin: 0;
-    padding: 0;
-    overflow-x: hidden;
-    overflow-y: auto;
-    font-family: Arial, sans-serif;
-    background-color: black;
-    color: white;
-    height: 100%;
-    width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  font-family: Arial, sans-serif;
+  background-color: black;
+  color: white;
+  height: 100%;
+  width: 100%;
 }
 
 body {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 20px;
-    box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
-/* Top button bar */
 #top-buttons {
-    position: fixed;
-    top: 15px;
-    left: 0;
-    right: 0;
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    z-index: 10;
+  position: fixed;
+  top: 15px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  z-index: 10;
 }
 
-/* Buttons */
 button, input[type="file"] {
-    padding: 10px 20px;
-    font-size: 18px;
-    background-color: black;
-    color: white;
-    border: 2px solid white;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s, color 0.3s;
+  padding: 10px 20px;
+  font-size: 18px;
+  background-color: black;
+  color: white;
+  border: 2px solid white;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s, color 0.3s;
 }
+
 button:hover, input[type="file"]:hover {
-    background-color: green;
-    color: white;
+  background-color: green;
+  color: white;
 }
 
-/* File name display */
 #fileNameTitle {
-    margin-top: 70px;
-    font-size: 18px;
+  margin-top: 70px;
+  font-size: 18px;
 }
 
-/* Output box */
 #output {
-    white-space: pre-wrap;
-    text-align: left;
-    margin-top: 20px;
-    background-color: black;
-    border: 1px solid white;
-    padding: 20px;
-    border-radius: 10px;
-    width: 90%;
-    max-width: 800px;
-    transition: border-color 0.3s ease;
+  white-space: pre-wrap;
+  text-align: left;
+  margin-top: 20px;
+  background-color: black;
+  border: 1px solid white;
+  padding: 20px;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 800px;
+  transition: border-color 0.3s ease;
 }
 
-/* Controls */
 #controls {
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    margin-top: 40px;
-    gap: 30px;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-top: 40px;
+  gap: 30px;
 }
 
 #nextButton {
-    width: calc(100% - 40px);
-    max-width: 800px;
-    height: 130px;
-    border-radius: 20px;
-    font-size: 60px;
-    margin: 0 20px;
+  width: calc(100% - 40px);
+  max-width: 800px;
+  height: 130px;
+  border-radius: 20px;
+  font-size: 60px;
+  margin: 0 20px;
 }
 
 .sub-buttons {
-    display: flex;
-    justify-content: center;
-    gap: 30px;
+  display: flex;
+  justify-content: center;
+  gap: 30px;
 }
 
 .sub-buttons button {
-    font-size: 18px;
-    padding: 10px 20px;
-    border-radius: 10px;
+  font-size: 18px;
+  padding: 10px 20px;
+  border-radius: 10px;
 }
 
 /* Settings popup */
 #settingsModal {
-    display: none;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: black;
-    border: 2px solid white;
-    border-radius: 10px;
-    padding: 30px;
-    z-index: 20;
-    width: 320px;
-    text-align: center;
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: black;
+  border: 2px solid white;
+  border-radius: 10px;
+  padding: 30px;
+  z-index: 20;
+  width: 320px;
+  text-align: center;
 }
 
 #settingsModal h2 {
-    margin-top: 0;
+  margin-top: 0;
 }
 
 #settingsModal label {
-    display: block;
-    margin-top: 15px;
-    font-size: 16px;
+  display: block;
+  margin-top: 15px;
+  font-size: 16px;
 }
 
 #closeSettings {
-    position: absolute;
-    top: 8px;
-    right: 10px;
-    font-size: 22px;
-    background: none;
-    border: none;
-    color: white;
-    cursor: pointer;
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font-size: 22px;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
 }
 
 /* Vertical sliders */
 .slider-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 40px;
-    margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 40px;
+  margin-top: 20px;
 }
 
 .slider-wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 input[type="range"] {
-    appearance: slider-vertical;
-    writing-mode: bt-lr;
-    width: 6px;
-    height: 120px;
-    background: white;
-    accent-color: white;
-    cursor: pointer;
-}
-input[type="range"]::-webkit-slider-thumb {
-    background: white;
-}
-input[type="range"]::-moz-range-thumb {
-    background: white;
+  appearance: slider-vertical;
+  writing-mode: bt-lr;
+  width: 6px;
+  height: 120px;
+  background: white;
+  accent-color: white;
+  cursor: pointer;
 }
