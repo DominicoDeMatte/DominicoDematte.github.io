@@ -1,135 +1,41 @@
-// DOM elements
-const fileInput = document.getElementById('fileInput');
-const processButton = document.getElementById('processButton');
-const resetButton = document.getElementById('resetButton');
-const clearButton = document.getElementById('clearButton');
-const outputDiv = document.getElementById('output');
-const controls = document.getElementById('controls');
-const nextButton = document.getElementById('nextButton');
-const backButton = document.getElementById('backButton');
-const skipAheadButton = document.getElementById('skipAheadButton');
-const muteButton = document.getElementById('muteButton');
-const fileNameTitle = document.getElementById('fileNameTitle');
-const settingsButton = document.getElementById('settingsButton');
-const settingsModal = document.getElementById('settingsModal');
-const closeSettings = document.getElementById('closeSettings');
-const volumeSlider = document.getElementById('volumeSlider');
-const speedSlider = document.getElementById('speedSlider');
-const volumeValue = document.getElementById('volumeValue');
-const speedValue = document.getElementById('speedValue');
+// Handles parsing, navigation, and speech synthesis
 
-// State
 let characterChoices = {};
 let lines = [];
 let currentLineIndex = -1;
 let voices = [];
 let isMuted = false;
-let pdfLoaded = false;
-let buttonFlashTimers = new WeakMap();
 
 let settings = {
   volume: parseFloat(localStorage.getItem('volume')) || 0.8,
   speed: parseFloat(localStorage.getItem('speed')) || 1.0,
 };
 
-// Initialize sliders
-volumeSlider.value = settings.volume;
-speedSlider.value = settings.speed;
-volumeValue.textContent = settings.volume.toFixed(2);
-speedValue.textContent = settings.speed.toFixed(1);
+// ===== SPEECH HANDLING =====
+speechSynthesis.onvoiceschanged = () => {
+  voices = speechSynthesis.getVoices();
+};
 
-volumeSlider.addEventListener('input', () => {
-  settings.volume = parseFloat(volumeSlider.value);
-  volumeValue.textContent = settings.volume.toFixed(2);
-  localStorage.setItem('volume', settings.volume);
-});
-
-speedSlider.addEventListener('input', () => {
-  settings.speed = parseFloat(speedSlider.value);
-  speedValue.textContent = settings.speed.toFixed(1);
-  localStorage.setItem('speed', settings.speed);
-});
-
-// Event Listeners
-fileInput.addEventListener('change', handleFileChange);
-processButton.addEventListener('click', handleProcessScript);
-nextButton.addEventListener('click', () => {
-  flashButton(nextButton);
-  playClickChord();
-  navigateLine(1);
-  if (navigator.vibrate) navigator.vibrate(50);
-});
-backButton.addEventListener('click', () => {
-  flashButton(backButton);
-  navigateLine(-1);
-});
-skipAheadButton.addEventListener('click', () => {
-  flashButton(skipAheadButton);
-  skipAhead();
-});
-muteButton.addEventListener('click', () => {
-  flashButton(muteButton);
-  toggleMute();
-});
-resetButton.addEventListener('click', () => {
-  flashButton(resetButton);
-  resetScene();
-});
-clearButton.addEventListener('click', () => {
-  flashButton(clearButton);
-  clearPDF();
-});
-settingsButton.addEventListener('click', () => (settingsModal.style.display = 'block'));
-closeSettings.addEventListener('click', () => (settingsModal.style.display = 'none'));
-
-speechSynthesis.onvoiceschanged = loadVoices;
-
-// Functions
-function flashButton(btn) {
-  if (buttonFlashTimers.has(btn)) {
-    clearTimeout(buttonFlashTimers.get(btn));
-    buttonFlashTimers.delete(btn);
-  }
-  btn.style.transition = 'background-color 0.15s ease';
-  btn.style.backgroundColor = 'green';
-  btn.style.color = 'white';
-  const timer = setTimeout(() => {
-    if (btn === muteButton && isMuted) return;
-    btn.style.backgroundColor = 'black';
-    btn.style.color = 'white';
-    buttonFlashTimers.delete(btn);
-  }, 500);
-  buttonFlashTimers.set(btn, timer);
+function speak(text) {
+  const u = new SpeechSynthesisUtterance(text);
+  const boostedVolume = Math.min(settings.volume * 1.5, 1.0);
+  u.volume = boostedVolume;
+  u.rate = settings.speed;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
 }
 
 function toggleMute() {
   isMuted = !isMuted;
+  const muteButton = document.getElementById('muteButton');
   muteButton.textContent = isMuted ? 'Unmute' : 'Mute';
   muteButton.style.backgroundColor = isMuted ? 'green' : 'black';
   muteButton.style.color = 'white';
   if (isMuted) speechSynthesis.cancel();
 }
 
-function handleFileChange() {
-  const file = fileInput.files[0];
-  if (file) {
-    pdfLoaded = true;
-    fileInput.style.display = 'none';
-    fileNameTitle.textContent = stripExtension(file.name);
-    processButton.style.display = 'inline-block';
-  }
-}
-
-function stripExtension(filename) {
-  return filename.replace(/\.[^/.]+$/, '');
-}
-
-function loadVoices() {
-  voices = speechSynthesis.getVoices();
-}
-
-function handleProcessScript() {
-  const file = fileInput.files[0];
+// ===== SCRIPT PROCESSING =====
+function handleProcessScript(file) {
   if (!file) return alert('Please upload a script.');
 
   const reader = new FileReader();
@@ -162,6 +68,7 @@ function identifyCharacters(scriptText) {
 }
 
 function displayCharacterSelection(chars, scriptText) {
+  const outputDiv = document.getElementById('output');
   outputDiv.innerHTML = '<h2>Select Voice Type for Each Character</h2>';
   const form = document.createElement('form');
 
@@ -206,7 +113,7 @@ function processScriptWithSelections(scriptText) {
     lines.push({ prefix, speaker, line, choice });
   }
 
-  controls.style.display = 'flex';
+  document.getElementById('controls').style.display = 'flex';
   navigateLine(1);
 }
 
@@ -220,7 +127,12 @@ function getPrefix(choice) {
   }
 }
 
+// ===== LINE NAVIGATION =====
 function navigateLine(direction) {
+  const outputDiv = document.getElementById('output');
+  const muteButton = document.getElementById('muteButton');
+  const controls = document.getElementById('controls');
+
   currentLineIndex += direction;
   if (currentLineIndex < 0) currentLineIndex = 0;
 
@@ -234,7 +146,6 @@ function navigateLine(direction) {
   const { speaker, line, choice } = lines[currentLineIndex];
   const clean = line.replace(/\(.*?\)/g, '').trim();
 
-  // Determine border color
   let borderColor = 'white';
   if (choice === 'mute' || choice === 'skip') borderColor = 'green';
   else if (
@@ -256,15 +167,7 @@ function navigateLine(direction) {
   }
 }
 
-function speak(text) {
-  const u = new SpeechSynthesisUtterance(text);
-  const boostedVolume = Math.min(settings.volume * 1.5, 1.0);
-  u.volume = boostedVolume;
-  u.rate = settings.speed;
-  speechSynthesis.cancel();
-  speechSynthesis.speak(u);
-}
-
+// ===== CONTROLS =====
 function resetScene() {
   if (lines.length === 0) return;
   currentLineIndex = -1;
@@ -272,19 +175,26 @@ function resetScene() {
 }
 
 function clearPDF() {
-  pdfLoaded = false;
+  const fileInput = document.getElementById('fileInput');
+  const outputDiv = document.getElementById('output');
+  const fileNameTitle = document.getElementById('fileNameTitle');
+  const processButton = document.getElementById('processButton');
+
   fileInput.value = '';
   fileInput.style.display = 'inline-block';
   fileNameTitle.textContent = '';
   outputDiv.innerHTML = '';
-  controls.style.display = 'none';
+  document.getElementById('controls').style.display = 'none';
   processButton.style.display = 'none';
   speechSynthesis.cancel();
   outputDiv.style.borderColor = 'white';
 }
 
 function skipAhead() {
+  const controls = document.getElementById('controls');
+  const outputDiv = document.getElementById('output');
   let next = -1;
+
   for (let i = currentLineIndex + 1; i < lines.length; i++) {
     if (lines[i].choice === 'mute' || lines[i].choice === 'skip') {
       next = i;
