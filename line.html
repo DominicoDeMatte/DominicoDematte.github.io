@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>1 Script Page</title>
+<title>Script Page</title>
 <style>
 html, body {
     margin: 0;
@@ -57,6 +57,18 @@ button:hover, input[type="file"]:hover { background-color: green; color: white; 
     max-width: 800px;
     transition: border 0.3s ease;
     position: relative;
+}
+/* Half-green/half-yellow border */
+#output.half-border::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    border-radius: 10px;
+    border: 3px solid transparent;
+    border-image: linear-gradient(to right, green 50%, yellow 50%) 1;
+    pointer-events: none;
+    box-sizing: border-box;
 }
 #controls {
     display: none;
@@ -194,17 +206,9 @@ const speedSlider=document.getElementById('speedSlider');
 const volumeValue=document.getElementById('volumeValue');
 const speedValue=document.getElementById('speedValue');
 
-let characterChoices={};
-let lines=[];
-let currentLineIndex=-1;
-let voices=[];
-let isMuted=false;
-let pdfLoaded=false;
+let characterChoices={}, lines=[], currentLineIndex=-1, voices=[], isMuted=false, pdfLoaded=false;
 let buttonFlashTimers=new WeakMap();
-let settings={
-    volume:parseFloat(localStorage.getItem('volume'))||0.8,
-    speed:parseFloat(localStorage.getItem('speed'))||1.0
-};
+let settings={volume:parseFloat(localStorage.getItem('volume'))||0.8,speed:parseFloat(localStorage.getItem('speed'))||1.0};
 
 volumeSlider.value=settings.volume;
 speedSlider.value=settings.speed;
@@ -265,8 +269,7 @@ function handleProcessScript(){
 
 function identifyCharacters(scriptText){
     const regex=/([A-Z]{2,})[,.]\s*(.+?)(?=[A-Z]{2,}[,.]\s*|$)/gs;
-    const chars=new Set();
-    let match;
+    const chars=new Set(); let match;
     while((match=regex.exec(scriptText))!==null)chars.add(match[1].trim());
     if(chars.size>0)displayCharacterSelection([...chars],scriptText);
     else alert("No characters found.");
@@ -313,86 +316,21 @@ function processScriptWithSelections(scriptText){
     navigateLine(1);
 }
 
-// 🎨 Updated navigateLine with half-green/half-yellow support
+// 🎨 Updated navigateLine with half-border support
 function navigateLine(direction){
     currentLineIndex += direction;
     if(currentLineIndex < 0) currentLineIndex = 0;
-    if(currentLineIndex >= lines.length) {
-        controls.style.display = 'none';
-        outputDiv.innerHTML = "<h2>No more lines to read!</h2>";
-        outputDiv.style.border = "3px solid white";
+    if(currentLineIndex >= lines.length){
+        controls.style.display='none';
+        outputDiv.innerHTML="<h2>No more lines to read!</h2>";
+        outputDiv.className = '';
+        outputDiv.style.border="3px solid white";
         return;
     }
 
-    const {speaker,line,choice} = lines[currentLineIndex];
-    const clean = line.replace(/\(.*?\)/g,'').trim();
-
-    // Clear previous half-border overlay
-    const prevOverlay = document.getElementById('halfBorder');
-    if(prevOverlay) prevOverlay.remove();
-
-    const prev = lines[currentLineIndex - 1]?.choice;
-    const next = lines[currentLineIndex + 1]?.choice;
-
-    if(choice === 'mute' || choice === 'skip'){
-        outputDiv.style.border = "3px solid green";
-    } else if(next === 'mute' || next === 'skip'){
-        outputDiv.style.border = "3px solid yellow";
-    } else if(prev && (prev==='mute'||prev==='skip') && next==='mute'){
-        outputDiv.style.border = "3px solid transparent";
-        const halfBorder = document.createElement('div');
-        halfBorder.id = 'halfBorder';
-        halfBorder.style.position = 'absolute';
-        halfBorder.style.top = '0';
-        halfBorder.style.left = '0';
-        halfBorder.style.width = '100%';
-        halfBorder.style.height = '100%';
-        halfBorder.style.border = '3px solid';
-        halfBorder.style.borderTopColor = 'green';
-        halfBorder.style.borderRightColor = 'yellow';
-        halfBorder.style.borderBottomColor = 'green';
-        halfBorder.style.borderLeftColor = 'green';
-        halfBorder.style.boxSizing = 'border-box';
-        halfBorder.style.pointerEvents = 'none';
-        outputDiv.appendChild(halfBorder);
-    } else {
-        outputDiv.style.border = "3px solid white";
-    }
+    const {speaker,line,choice}=lines[currentLineIndex];
+    const clean=line.replace(/\(.*?\)/g,'').trim();
 
     outputDiv.innerHTML = `<h2>${speaker}: ${clean}</h2>`;
-    if(!isMuted && choice !== 'mute' && choice !== 'skip') speak(line);
-    else speechSynthesis.cancel();
-}
-
-function speak(text){
-    const u=new SpeechSynthesisUtterance(text);
-    u.volume=Math.min(settings.volume*1.5,1.0);
-    u.rate=settings.speed;
-    speechSynthesis.cancel();
-    speechSynthesis.speak(u);
-}
-
-function resetScene(){if(lines.length===0)return;currentLineIndex=-1;navigateLine(1);}
-function clearPDF(){pdfLoaded=false;fileInput.value="";fileInput.style.display="inline-block";fileNameTitle.textContent="";outputDiv.innerHTML="";controls.style.display="none";processButton.style.display="none";speechSynthesis.cancel();outputDiv.style.border="3px solid white";}
-function skipAhead(){
-    let next=-1;
-    for(let i=currentLineIndex+1;i<lines.length;i++)
-        if(lines[i].choice==='mute'||lines[i].choice==='skip'){next=i;break;}
-    if(next===-1){currentLineIndex=lines.length;controls.style.display='none';outputDiv.innerHTML="<h2>No more lines to read!</h2>";outputDiv.style.border="3px solid white";return;}
-    currentLineIndex=next-1;
-    navigateLine(0);
-}
-
-function playClickChord(){
-    const a=new(window.AudioContext||window.webkitAudioContext)();
-    const now=a.currentTime;
-    [261.63,329.63,392.00].forEach(f=>{
-        const o=a.createOscillator();const g=a.createGain();
-        o.type="sine";o.frequency.setValueAtTime(f,now);
-        g.gain.setValueAtTime(0.08,now);g.gain.exponentialRampToValueAtTime(0.0001,now+0.4);
-        o.connect(g).connect(a.destination);o.start(now);o.stop(now+0.4);
-    });
-}
-</script>
-</body>
-</html>
+    outputDiv.className = '';
+    outputDiv.style.border="3px solid white
