@@ -3,10 +3,11 @@ const processButton = document.getElementById('processButton');
 const fileNameTitle = document.getElementById('fileNameTitle');
 let pdfLoaded = false;
 
-// Event listener for file upload
+// Event listeners
 fileInput.addEventListener('change', handleFileChange);
 processButton.addEventListener('click', handleProcessScript);
 
+// Handle file selection
 function handleFileChange() {
     const file = fileInput.files[0];
     if (file) {
@@ -17,12 +18,12 @@ function handleFileChange() {
     }
 }
 
-// Remove extension from filename
+// Remove file extension
 function stripExtension(filename) {
     return filename.replace(/\.[^/.]+$/, "");
 }
 
-// Read PDF and extract text
+// Read PDF and process
 function handleProcessScript() {
     const file = fileInput.files[0];
     if (!file) return alert("Please upload a script.");
@@ -35,17 +36,18 @@ function handleProcessScript() {
         ).then(arr => {
             const rawText = arr.flatMap(tc => tc.items.map(i => i.str)).join('\n');
             const cleanedText = cleanScriptText(rawText);
-            processExtractedText(cleanedText);  // passes to scriptPlayer.js
+            processExtractedText(cleanedText); // Pass to scriptPlayer.js
         });
     };
     reader.readAsArrayBuffer(file);
 }
 
 /**
- * Cleans script text by:
- * - Removing page numbers and credits
- * - Merging lines for the same character
- * - Removing parentheticals
+ * Clean script text:
+ * - Remove page numbers and credits
+ * - Merge lines for the same character
+ * - Remove parentheticals
+ * - Avoid first letter bleeding into previous line
  */
 function cleanScriptText(text) {
     const lines = text.split('\n');
@@ -61,22 +63,25 @@ function cleanScriptText(text) {
         if (/^\d+$/.test(line)) return;
         if (/Prepared for|Invoice|Clue: On Stage/i.test(line)) return;
 
-        // Check if line starts with CHARACTER. (all caps)
+        // Detect CHARACTER line
         const match = line.match(/^([A-Z][A-Z\s]*?)\.?\s*(.*)/);
         if (match) {
+            // Save previous character's buffer
             if (currentChar && buffer) {
                 let cleanedLine = currentChar + '. ' + buffer.trim();
                 cleanedLine = cleanedLine.replace(/\([^)]*\)/g, '').trim();
                 outputLines.push(cleanedLine);
-                outputLines.push(''); // extra newline between blocks
+                outputLines.push('');
             }
+            // Start new character
             currentChar = match[1].trim();
-            buffer = match[2];
+            buffer = match[2] || '';
         } else {
             buffer += ' ' + line;
         }
     });
 
+    // Push last character's lines
     if (currentChar && buffer) {
         let cleanedLine = currentChar + '. ' + buffer.trim();
         cleanedLine = cleanedLine.replace(/\([^)]*\)/g, '').trim();
@@ -86,7 +91,7 @@ function cleanScriptText(text) {
     return outputLines.join('\n');
 }
 
-// Optional clipboard integration (for future buttons if needed)
+// Clipboard helpers (optional for future UI buttons)
 async function pasteClipboard() {
     try {
         const text = await navigator.clipboard.readText();
