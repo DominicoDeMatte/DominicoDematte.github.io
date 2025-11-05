@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>1 Script Page</title>
+<title>Script Page</title>
 <style>
 html, body {
     margin: 0;
@@ -56,6 +56,7 @@ button:hover, input[type="file"]:hover { background-color: green; color: white; 
     width: 90%;
     max-width: 800px;
     transition: border 0.3s ease;
+    position: relative;
 }
 #controls {
     display: none;
@@ -210,8 +211,16 @@ speedSlider.value=settings.speed;
 volumeValue.textContent=settings.volume.toFixed(2);
 speedValue.textContent=settings.speed.toFixed(1);
 
-volumeSlider.addEventListener('input',()=>{settings.volume=parseFloat(volumeSlider.value);volumeValue.textContent=settings.volume.toFixed(2);localStorage.setItem('volume',settings.volume);});
-speedSlider.addEventListener('input',()=>{settings.speed=parseFloat(speedSlider.value);speedValue.textContent=settings.speed.toFixed(1);localStorage.setItem('speed',settings.speed);});
+volumeSlider.addEventListener('input',()=>{
+    settings.volume=parseFloat(volumeSlider.value);
+    volumeValue.textContent=settings.volume.toFixed(2);
+    localStorage.setItem('volume',settings.volume);
+});
+speedSlider.addEventListener('input',()=>{
+    settings.speed=parseFloat(speedSlider.value);
+    speedValue.textContent=settings.speed.toFixed(1);
+    localStorage.setItem('speed',settings.speed);
+});
 
 function flashButton(btn){
     if(buttonFlashTimers.has(btn)){clearTimeout(buttonFlashTimers.get(btn));buttonFlashTimers.delete(btn);}
@@ -304,39 +313,54 @@ function processScriptWithSelections(scriptText){
     navigateLine(1);
 }
 
+// 🎨 Updated navigateLine with half-green/half-yellow support
 function navigateLine(direction){
-    currentLineIndex+=direction;
-    if(currentLineIndex<0)currentLineIndex=0;
-    if(currentLineIndex>=lines.length){
-        controls.style.display='none';
-        outputDiv.innerHTML="<h2>No more lines to read!</h2>";
-        outputDiv.style.border="3px solid white";
+    currentLineIndex += direction;
+    if(currentLineIndex < 0) currentLineIndex = 0;
+    if(currentLineIndex >= lines.length) {
+        controls.style.display = 'none';
+        outputDiv.innerHTML = "<h2>No more lines to read!</h2>";
+        outputDiv.style.border = "3px solid white";
         return;
     }
 
-    const {speaker,line,choice}=lines[currentLineIndex];
-    const clean=line.replace(/\(.*?\)/g,'').trim();
+    const {speaker,line,choice} = lines[currentLineIndex];
+    const clean = line.replace(/\(.*?\)/g,'').trim();
 
-    // Determine border
-    const prev=lines[currentLineIndex-1]?.choice;
-    const next=lines[currentLineIndex+1]?.choice;
-    if(choice==='mute'||choice==='skip'){
-        // Muted/skipped line → green border
-        outputDiv.style.border="3px solid green";
-    } else if(next==='mute'||next==='skip'){
-        // Right before a muted/skipped line → yellow
-        outputDiv.style.border="3px solid yellow";
-    } else if(prev&&(prev==='mute'||prev==='skip') && (choice!=='mute' && choice!=='skip') && next==='mute'){
-        // Two muted/skipped lines in a row → left green, right yellow
-        outputDiv.style.border="3px solid transparent";
-        outputDiv.style.borderImage="linear-gradient(to right, green 50%, yellow 50%) 1";
+    // Clear previous half-border overlay
+    const prevOverlay = document.getElementById('halfBorder');
+    if(prevOverlay) prevOverlay.remove();
+
+    const prev = lines[currentLineIndex - 1]?.choice;
+    const next = lines[currentLineIndex + 1]?.choice;
+
+    if(choice === 'mute' || choice === 'skip'){
+        outputDiv.style.border = "3px solid green";
+    } else if(next === 'mute' || next === 'skip'){
+        outputDiv.style.border = "3px solid yellow";
+    } else if(prev && (prev==='mute'||prev==='skip') && next==='mute'){
+        outputDiv.style.border = "3px solid transparent";
+        const halfBorder = document.createElement('div');
+        halfBorder.id = 'halfBorder';
+        halfBorder.style.position = 'absolute';
+        halfBorder.style.top = '0';
+        halfBorder.style.left = '0';
+        halfBorder.style.width = '100%';
+        halfBorder.style.height = '100%';
+        halfBorder.style.border = '3px solid';
+        halfBorder.style.borderTopColor = 'green';
+        halfBorder.style.borderRightColor = 'yellow';
+        halfBorder.style.borderBottomColor = 'green';
+        halfBorder.style.borderLeftColor = 'green';
+        halfBorder.style.boxSizing = 'border-box';
+        halfBorder.style.pointerEvents = 'none';
+        outputDiv.appendChild(halfBorder);
     } else {
-        outputDiv.style.border="3px solid white";
+        outputDiv.style.border = "3px solid white";
     }
 
-    outputDiv.innerHTML=`<h2>${speaker}: ${clean}</h2>`;
-
-    if(!isMuted && choice!=='mute' && choice!=='skip') speak(line);
+    outputDiv.innerHTML = `<h2>${speaker}: ${clean}</h2>`;
+    if(!isMuted && choice !== 'mute' && choice !== 'skip') speak(line);
     else speechSynthesis.cancel();
 }
 
