@@ -19,6 +19,7 @@ body {
   box-sizing: border-box;
 }
 
+/* Top button bar */
 #top-buttons {
   position: fixed;
   top: 15px;
@@ -30,6 +31,7 @@ body {
   z-index: 10;
 }
 
+/* Buttons */
 button, input[type="file"] {
   padding: 10px 20px;
   font-size: 18px;
@@ -46,17 +48,19 @@ button:hover, input[type="file"]:hover {
   color: white;
 }
 
+/* File name display */
 #fileNameTitle {
   margin-top: 70px;
   font-size: 18px;
 }
 
+/* Output box */
 #output {
   white-space: pre-wrap;
   text-align: left;
   margin-top: 20px;
   background-color: black;
-  border: 1px solid white;
+  border: 2px solid white;
   padding: 20px;
   border-radius: 10px;
   width: 90%;
@@ -64,6 +68,7 @@ button:hover, input[type="file"]:hover {
   transition: border-color 0.3s ease;
 }
 
+/* Controls */
 #controls {
   display: none;
   flex-direction: column;
@@ -154,4 +159,9 @@ input[type="range"] {
   background: white;
   accent-color: white;
   cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb,
+input[type="range"]::-moz-range-thumb {
+  background: white;
 }
