@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>1 Script Page</title>
+<title>Script Page</title>
 <style>
 html, body {
     margin: 0;
@@ -46,30 +46,23 @@ button, input[type="file"] {
 button:hover, input[type="file"]:hover { background-color: green; color: white; }
 #fileNameTitle { margin-top: 70px; font-size: 18px; }
 #output {
-    white-space: pre-wrap;
-    text-align: left;
-    margin-top: 20px;
-    background-color: black;
-    border: 3px solid white;
-    padding: 20px;
-    border-radius: 10px;
     width: 90%;
     max-width: 800px;
-    transition: border 0.3s ease;
+    margin-top: 20px;
     position: relative;
 }
-/* Half-green/half-yellow border */
-#output.half-border::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
+#lineContainer {
+    padding: 20px;
     border-radius: 10px;
-    border: 3px solid transparent;
-    border-image: linear-gradient(to right, green 50%, yellow 50%) 1;
-    pointer-events: none;
-    box-sizing: border-box;
+    border: 3px solid white;
+    transition: border 0.3s ease, background 0.3s ease;
+    background-color: black;
+    color: white;
 }
+/* Line styles */
+#lineContainer.muted, #lineContainer.skipped { border: 3px solid green; background-color: black; }
+#lineContainer.before-muted { border: 3px solid yellow; background-color: black; }
+#lineContainer.half-border { border: 3px solid transparent; background: linear-gradient(to right, green 50%, yellow 50%); color: white; }
 #controls {
     display: none;
     flex-direction: column;
@@ -175,7 +168,7 @@ input[type="range"]::-moz-range-thumb { background: white; }
 
 <h2 id="fileNameTitle"></h2>
 <input type="file" id="fileInput" accept=".pdf">
-<div id="output"></div>
+<div id="output"><div id="lineContainer"></div></div>
 
 <div id="controls">
     <button id="nextButton">&gt;</button>
@@ -191,7 +184,7 @@ const fileInput=document.getElementById('fileInput');
 const processButton=document.getElementById('processButton');
 const resetButton=document.getElementById('resetButton');
 const clearButton=document.getElementById('clearButton');
-const outputDiv=document.getElementById('output');
+const lineContainer=document.getElementById('lineContainer');
 const controls=document.getElementById('controls');
 const nextButton=document.getElementById('nextButton');
 const backButton=document.getElementById('backButton');
@@ -206,9 +199,9 @@ const speedSlider=document.getElementById('speedSlider');
 const volumeValue=document.getElementById('volumeValue');
 const speedValue=document.getElementById('speedValue');
 
-let characterChoices={}, lines=[], currentLineIndex=-1, voices=[], isMuted=false, pdfLoaded=false;
+let characterChoices={}, lines=[], currentLineIndex=-1, isMuted=false, pdfLoaded=false;
 let buttonFlashTimers=new WeakMap();
-let settings={volume:parseFloat(localStorage.getItem('volume'))||0.8,speed:parseFloat(localStorage.getItem('speed'))||1.0};
+let settings={volume:parseFloat(localStorage.getItem('volume'))||0.8, speed:parseFloat(localStorage.getItem('speed'))||1.0};
 
 volumeSlider.value=settings.volume;
 speedSlider.value=settings.speed;
@@ -276,7 +269,7 @@ function identifyCharacters(scriptText){
 }
 
 function displayCharacterSelection(chars,scriptText){
-    outputDiv.innerHTML='<h2>Select Voice Type for Each Character</h2>';
+    lineContainer.innerHTML='<h2>Select Voice Type for Each Character</h2>';
     const form=document.createElement('form');
     chars.forEach(ch=>{
         const div=document.createElement('div');
@@ -299,7 +292,7 @@ function displayCharacterSelection(chars,scriptText){
         processScriptWithSelections(scriptText);
     });
     form.appendChild(done);
-    outputDiv.appendChild(form);
+    lineContainer.appendChild(form);
 }
 
 function processScriptWithSelections(scriptText){
@@ -316,50 +309,46 @@ function processScriptWithSelections(scriptText){
     navigateLine(1);
 }
 
-// 🎨 Updated navigateLine with half-border support
+// 🎨 Navigate line with proper borders
 function navigateLine(direction){
     currentLineIndex += direction;
     if(currentLineIndex < 0) currentLineIndex = 0;
     if(currentLineIndex >= lines.length){
         controls.style.display='none';
-        outputDiv.innerHTML="<h2>No more lines to read!</h2>";
-        outputDiv.className = '';
-        outputDiv.style.border="3px solid white";
+        lineContainer.innerHTML="<h2>No more lines to read!</h2>";
+        lineContainer.className = '';
         return;
     }
 
-    const {speaker,line,choice}=lines[currentLineIndex];
-    const clean=line.replace(/\(.*?\)/g,'').trim();
+    const {speaker,line,choice} = lines[currentLineIndex];
+    const clean = line.replace(/\(.*?\)/g,'').trim();
 
-    outputDiv.innerHTML = `<h2>${speaker}: ${clean}</h2>`;
-    outputDiv.className = '';
-    outputDiv.style.border="3px solid white";
+    lineContainer.innerHTML = `<h2>${speaker}: ${clean}</h2>`;
+    lineContainer.className = '';
 
     const prev = lines[currentLineIndex-1]?.choice;
     const next = lines[currentLineIndex+1]?.choice;
 
-    if(choice==='mute' || choice==='skip'){
-        outputDiv.style.border="3px solid green";
-    } else if(next==='mute' || next==='skip'){
-        outputDiv.style.border="3px solid yellow";
-    } else if(prev && (prev==='mute' || prev==='skip') && next==='mute'){
-        outputDiv.classList.add('half-border');
-    }
+    if(choice==='mute') lineContainer.classList.add('muted');
+    else if(choice==='skip') lineContainer.classList.add('skipped');
+    else if(next==='mute' || next==='skip') lineContainer.classList.add('before-muted');
+    else if(prev && (prev==='mute'||prev==='skip') && next==='mute') lineContainer.classList.add('half-border');
 
     if(!isMuted && choice!=='mute' && choice!=='skip') speak(line);
     else speechSynthesis.cancel();
 }
 
 function resetScene(){if(lines.length===0)return;currentLineIndex=-1;navigateLine(1);}
-function clearPDF(){pdfLoaded=false;fileInput.value="";fileInput.style.display="inline-block";fileNameTitle.textContent="";outputDiv.innerHTML="";controls.style.display="none";processButton.style.display="none";speechSynthesis.cancel();outputDiv.style.border="3px solid white";}
+function clearPDF(){pdfLoaded=false;fileInput.value="";fileInput.style.display="inline-block";fileNameTitle.textContent="";lineContainer.innerHTML="";controls.style.display="none";processButton.style.display="none";speechSynthesis.cancel();lineContainer.style.border="3px solid white";}
 function skipAhead(){
     let next=-1;
     for(let i=currentLineIndex+1;i<lines.length;i++)
         if(lines[i].choice==='mute'||lines[i].choice==='skip'){next=i;break;}
-    if(next===-1){currentLineIndex=lines.length;controls.style.display='none';outputDiv.innerHTML="<h2>No more lines to read!</h2>";outputDiv.style.border="3px solid white";return;}
+    if(next===-1){currentLineIndex=lines.length;controls.style.display='none';lineContainer.innerHTML="<h2>No more lines to read!</h2>";lineContainer.className='';return;}
     currentLineIndex=next-1;
     navigateLine(0);
 }
+
 function speak(text){const u=new SpeechSynthesisUtterance(text);u.volume=Math.min(settings.volume*1.5,1.0);u.rate=settings.speed;speechSynthesis.cancel();speechSynthesis.speak(u);}
 function playClickChord(){const a=new(window.AudioContext||window.webkitAudioContext)();const now=a.currentTime;[261.63,329.63,392.00].forEach(f=>{const o=a.createOscillator();const g=a.createGain();o.type="sine";o.frequency.setValueAtTime(f,now);g.gain.setValueAtTime(0.08,now);g.gain.exponentialRampToValueAtTime(0.0001,now+0.4);o.connect(g).connect(a.destination);o.start(now);o.stop(now+0.4);});}
 </script>
