@@ -1,4 +1,5 @@
 // scriptPlayer.js
+// Handles script reading, line navigation, and speech synthesis
 
 // DOM elements
 const outputDiv = document.getElementById('output');
@@ -8,29 +9,18 @@ const backButton = document.getElementById('backButton');
 const skipAheadButton = document.getElementById('skipAheadButton');
 const muteButton = document.getElementById('muteButton');
 
-// State variables
 let characterChoices = {};
 let lines = [];
 let currentLineIndex = -1;
-let voices = [];
 let isMuted = false;
-let buttonFlashTimers = new WeakMap();
 let settings = {
     volume: parseFloat(localStorage.getItem('volume')) || 0.8,
     speed: parseFloat(localStorage.getItem('speed')) || 1.0
 };
-
-// Event listeners
-nextButton.addEventListener('click', () => { flashButton(nextButton); playClickChord(); navigateLine(1); if (navigator.vibrate) navigator.vibrate(50); });
-backButton.addEventListener('click', () => { flashButton(backButton); navigateLine(-1); });
-skipAheadButton.addEventListener('click', () => { flashButton(skipAheadButton); skipAhead(); });
-muteButton.addEventListener('click', () => { flashButton(muteButton); toggleMute(); });
-
-// Load available voices for speech synthesis
-speechSynthesis.onvoiceschanged = () => { voices = speechSynthesis.getVoices(); };
+let buttonFlashTimers = new WeakMap();
 
 // ----------------------
-// Button flash helper
+// BUTTON FLASH FUNCTION
 // ----------------------
 function flashButton(btn) {
     if (buttonFlashTimers.has(btn)) {
@@ -40,17 +30,19 @@ function flashButton(btn) {
     btn.style.transition = 'background-color 0.15s ease';
     btn.style.backgroundColor = 'green';
     btn.style.color = 'white';
+
     const timer = setTimeout(() => {
         if (btn === muteButton && isMuted) return;
         btn.style.backgroundColor = 'black';
         btn.style.color = 'white';
         buttonFlashTimers.delete(btn);
     }, 500);
+
     buttonFlashTimers.set(btn, timer);
 }
 
 // ----------------------
-// Mute toggle
+// SPEECH FUNCTIONS
 // ----------------------
 function toggleMute() {
     isMuted = !isMuted;
@@ -60,33 +52,46 @@ function toggleMute() {
     if (isMuted) speechSynthesis.cancel();
 }
 
+function speak(text) {
+    if (!text) return;
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.volume = Math.min(settings.volume * 1.5, 1.0);
+    utter.rate = settings.speed;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(utter);
+}
+
 // ----------------------
-// Process script with selections
+// SCRIPT PROCESSING
 // ----------------------
 function processScriptWithSelections(scriptText) {
-    // Normalize newlines for consistent splitting
+    // Normalize newlines
     scriptText = scriptText.replace(/\r\n/g, '\n').replace(/\n+/g, '\n');
 
-    // Regex for character lines (fixed first-letter bug)
+    // Regex to match character names and lines without losing first letters
     const regex = /([A-Z][A-Z]+)[,.]?\s*(.*?)(?=(?:\n|[A-Z][A-Z]+[,.]))/gs;
-
     lines = [];
     let match;
+
     while ((match = regex.exec(scriptText)) !== null) {
         const speaker = match[1].trim();
         const line = match[2].trim();
-        const choice = characterChoices[speaker];
+        const choice = characterChoices[speaker] || 'masc';
         const prefix = getPrefix(choice);
         lines.push({ prefix, speaker, line, choice });
     }
 
+    if (lines.length === 0) {
+        outputDiv.innerHTML = "<h2>No lines found!</h2>";
+        controls.style.display = 'none';
+        return;
+    }
+
     controls.style.display = 'flex';
+    currentLineIndex = -1;
     navigateLine(1);
 }
 
-// ----------------------
-// Helpers
-// ----------------------
 function getPrefix(choice) {
     switch (choice) {
         case 'masc': return '++';
@@ -98,12 +103,12 @@ function getPrefix(choice) {
 }
 
 // ----------------------
-// Navigation
+// NAVIGATION
 // ----------------------
 function navigateLine(direction) {
     currentLineIndex += direction;
 
-    // Skip lines marked "skip"
+    // Skip 'skip' lines automatically
     while (currentLineIndex >= 0 && currentLineIndex < lines.length && lines[currentLineIndex].choice === 'skip') {
         currentLineIndex += direction;
     }
@@ -117,53 +122,16 @@ function navigateLine(direction) {
 
     const { speaker, line, choice } = lines[currentLineIndex];
     const cleanLine = line.replace(/\(.*?\)/g, '').trim();
-
-    outputDiv.style.borderColor = (choice === 'mute') ? 'green' : 'white';
     outputDiv.innerHTML = `<h2>${speaker}: ${cleanLine}</h2>`;
+    outputDiv.style.borderColor = choice === 'mute' ? 'green' : 'white';
 
-    if (!isMuted && choice !== 'mute' && choice !== 'skip') {
-        speak(line);
-    } else {
-        speechSynthesis.cancel();
-    }
+    if (!isMuted && choice !== 'mute' && choice !== 'skip') speak(line);
+    else speechSynthesis.cancel();
 
     if (isMuted) {
         muteButton.style.backgroundColor = 'green';
         muteButton.style.color = 'white';
     }
-}
-
-// ----------------------
-// Speech
-// ----------------------
-function speak(text) {
-    const utterance = new SpeechSynthesisUtterance(text);
-    const boostedVolume = Math.min(settings.volume * 1.5, 1.0);
-    utterance.volume = boostedVolume;
-    utterance.rate = settings.speed;
-    speechSynthesis.cancel();
-    speechSynthesis.speak(utterance);
-}
-
-// ----------------------
-// Controls: reset, clear, skip
-// ----------------------
-function resetScene() {
-    if (lines.length === 0) return;
-    currentLineIndex = -1;
-    navigateLine(1);
-}
-
-function clearPDF(fileInput, fileNameTitle) {
-    lines = [];
-    currentLineIndex = -1;
-    fileInput.value = "";
-    fileInput.style.display = "inline-block";
-    fileNameTitle.textContent = "";
-    outputDiv.innerHTML = "";
-    controls.style.display = "none";
-    speechSynthesis.cancel();
-    outputDiv.style.borderColor = "white";
 }
 
 function skipAhead() {
@@ -179,7 +147,7 @@ function skipAhead() {
         currentLineIndex = lines.length;
         controls.style.display = 'none';
         outputDiv.innerHTML = "<h2>No more lines to read!</h2>";
-        outputDiv.style.borderColor = "white";
+        outputDiv.style.borderColor = 'white';
         return;
     }
 
@@ -187,21 +155,37 @@ function skipAhead() {
     navigateLine(0);
 }
 
+function resetScene() {
+    if (lines.length === 0) return;
+    currentLineIndex = -1;
+    navigateLine(1);
+}
+
 // ----------------------
-// Click chord for next button
+// CLICK SOUND
 // ----------------------
 function playClickChord() {
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const now = audioCtx.currentTime;
+    const context = new (window.AudioContext || window.webkitAudioContext)();
+    const now = context.currentTime;
     [261.63, 329.63, 392.00].forEach(frequency => {
-        const oscillator = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
         oscillator.type = 'sine';
         oscillator.frequency.setValueAtTime(frequency, now);
         gain.gain.setValueAtTime(0.08, now);
         gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.4);
-        oscillator.connect(gain).connect(audioCtx.destination);
+        oscillator.connect(gain).connect(context.destination);
         oscillator.start(now);
         oscillator.stop(now + 0.4);
     });
 }
+
+// ----------------------
+// BUTTON EVENT LISTENERS
+// ----------------------
+nextButton.addEventListener('click', () => { flashButton(nextButton); playClickChord(); navigateLine(1); if (navigator.vibrate) navigator.vibrate(50); });
+backButton.addEventListener('click', () => { flashButton(backButton); navigateLine(-1); });
+skipAheadButton.addEventListener('click', () => { flashButton(skipAheadButton); skipAhead(); });
+muteButton.addEventListener('click', () => { flashButton(muteButton); toggleMute(); });
+
+export { processScriptWithSelections, resetScene, flashButton };
