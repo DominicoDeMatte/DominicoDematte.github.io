@@ -171,10 +171,7 @@ Mute Answers
 <input type="file" id="pdfUpload" accept=".pdf">
 
 <select id="repoPdfSelect">
-<option value="">Select PDF from site</option>
-<option value="pdfs/unit1.pdf">unit1.pdf</option>
-<option value="pdfs/unit2.pdf">unit2.pdf</option>
-<option value="pdfs/final_review.pdf">final_review.pdf</option>
+<option value="">Loading site PDFs...</option>
 </select>
 
 <button class="loadButton" onclick="loadSelectedRepoPdf()">Load Selected PDF</button>
@@ -184,6 +181,7 @@ Mute Answers
 
 <div id="controlArea">
 <button class="smallCircle" onclick="repeatQuestion()">↻</button>
+
 <button id="askButton" onclick="askQuestion()">?</button>
 
 <div id="rightStack">
@@ -244,6 +242,44 @@ fullText += item.str + "\n";
 }
 
 return fullText;
+}
+
+/* LOAD PDF LIST FROM JSON */
+async function loadPdfList(){
+const select = document.getElementById("repoPdfSelect");
+
+try{
+const response = await fetch("pdfs.json");
+
+if(!response.ok){
+throw new Error("HTTP " + response.status);
+}
+
+const pdfList = await response.json();
+
+select.innerHTML = "";
+
+const defaultOption = document.createElement("option");
+defaultOption.value = "";
+defaultOption.textContent = "Select PDF from site";
+select.appendChild(defaultOption);
+
+pdfList.forEach(path => {
+const option = document.createElement("option");
+option.value = path;
+option.textContent = path.split("/").pop();
+select.appendChild(option);
+});
+
+document.getElementById("status").innerText =
+`Loaded PDF list (${pdfList.length} files available).`;
+
+}catch(err){
+console.error(err);
+select.innerHTML = '<option value="">No site PDFs found</option>';
+document.getElementById("status").innerText =
+"Could not load pdfs.json.";
+}
 }
 
 /* LOAD LOCAL UPLOAD PDF */
@@ -365,6 +401,7 @@ if(!current) return;
 
 if(lineIndex < answerLines.length){
 let line = answerLines[lineIndex];
+
 document.getElementById("answer").innerText += line + "\n";
 lineIndex++;
 
@@ -373,6 +410,9 @@ speakSpanish(line);
 }
 }
 }
+
+/* RUN ON PAGE LOAD */
+loadPdfList();
 </script>
 
 </body>
