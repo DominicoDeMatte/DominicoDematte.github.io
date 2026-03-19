@@ -4,7 +4,6 @@
 <title>Spanish Oral Exam Practice</title>
 
 <style>
-
 body{
 font-family: Arial, sans-serif;
 background:#111;
@@ -38,6 +37,33 @@ box-shadow:0 0 15px rgba(0,0,0,0.6);
 
 .slider{
 width:100%;
+}
+
+/* PDF SOURCE AREA */
+#pdfSourceArea{
+margin:20px auto;
+display:flex;
+justify-content:center;
+align-items:center;
+gap:10px;
+flex-wrap:wrap;
+}
+
+#repoPdfSelect{
+padding:8px;
+font-size:16px;
+border-radius:6px;
+border:none;
+}
+
+.loadButton{
+padding:10px 14px;
+font-size:16px;
+border:none;
+border-radius:8px;
+cursor:pointer;
+background:#333;
+color:white;
 }
 
 /* BUTTON LAYOUT */
@@ -109,6 +135,11 @@ font-size:20px;
 color:#8be9fd;
 }
 
+#status{
+margin-top:15px;
+font-size:15px;
+color:#bbb;
+}
 </style>
 </head>
 
@@ -117,7 +148,6 @@ color:#8be9fd;
 <div id="settingsIcon" onclick="toggleSettings()">⚙️</div>
 
 <div id="settingsPanel">
-
 <label>Volume</label>
 <input type="range" id="volumeSlider" class="slider" min="0" max="1" step="0.05" value="1">
 
@@ -133,27 +163,33 @@ Mute Questions
 <input type="checkbox" id="answerMute">
 Mute Answers
 </label>
-
 </div>
 
 <h1>Spanish Oral Exam Practice</h1>
 
+<div id="pdfSourceArea">
 <input type="file" id="pdfUpload" accept=".pdf">
 
+<select id="repoPdfSelect">
+<option value="">Select PDF from site</option>
+<option value="pdfs/unit1.pdf">unit1.pdf</option>
+<option value="pdfs/unit2.pdf">unit2.pdf</option>
+<option value="pdfs/final_review.pdf">final_review.pdf</option>
+</select>
+
+<button class="loadButton" onclick="loadSelectedRepoPdf()">Load Selected PDF</button>
+</div>
+
+<div id="status">No PDF loaded yet.</div>
+
 <div id="controlArea">
-
 <button class="smallCircle" onclick="repeatQuestion()">↻</button>
-
 <button id="askButton" onclick="askQuestion()">?</button>
 
 <div id="rightStack">
-
 <button class="stackButton" onclick="showNextLine()">></button>
-
 <button class="stackButton" onclick="showFullAnswer()">>></button>
-
 </div>
-
 </div>
 
 <div id="question"></div>
@@ -162,29 +198,19 @@ Mute Answers
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
 
 <script>
-
 let qaPairs = [];
 let current = null;
 let answerLines = [];
 let lineIndex = 0;
 
 /* SETTINGS MENU */
-
 function toggleSettings(){
-
 let panel = document.getElementById("settingsPanel");
-
-panel.style.display =
-panel.style.display === "block"
-? "none"
-: "block";
-
+panel.style.display = panel.style.display === "block" ? "none" : "block";
 }
 
 /* SPEECH */
-
 function speakSpanish(text){
-
 speechSynthesis.cancel();
 
 const utter = new SpeechSynthesisUtterance(text);
@@ -195,152 +221,158 @@ let spanish = voices.find(v => v.lang.startsWith("es"));
 if(spanish) utter.voice = spanish;
 
 utter.lang = "es-ES";
-
-utter.volume =
-document.getElementById("volumeSlider").value;
-
-utter.rate =
-document.getElementById("speedSlider").value;
+utter.volume = document.getElementById("volumeSlider").value;
+utter.rate = document.getElementById("speedSlider").value;
 
 setTimeout(()=>{
 speechSynthesis.speak(utter);
 },120);
-
 }
 
-/* PDF LOAD */
-
-document.getElementById('pdfUpload').addEventListener('change', async function(e){
-
-const file = e.target.files[0];
-const reader = new FileReader();
-
-reader.onload = async function(){
-
-const typedarray = new Uint8Array(this.result);
-const pdf = await pdfjsLib.getDocument(typedarray).promise;
-
+/* PDF TEXT EXTRACTION */
+async function extractPdfText(pdfData){
+const pdf = await pdfjsLib.getDocument(pdfData).promise;
 let fullText = "";
 
-for(let i=1;i<=pdf.numPages;i++){
-
+for(let i = 1; i <= pdf.numPages; i++){
 let page = await pdf.getPage(i);
 let txt = await page.getTextContent();
 
-txt.items.forEach(item=>{
+txt.items.forEach(item => {
 fullText += item.str + "\n";
 });
-
 }
 
-parseText(fullText);
+return fullText;
+}
 
+/* LOAD LOCAL UPLOAD PDF */
+document.getElementById('pdfUpload').addEventListener('change', async function(e){
+const file = e.target.files[0];
+if(!file) return;
+
+document.getElementById("status").innerText = "Loading uploaded PDF...";
+
+const reader = new FileReader();
+
+reader.onload = async function(){
+try{
+const typedarray = new Uint8Array(this.result);
+const fullText = await extractPdfText(typedarray);
+parseText(fullText);
+document.getElementById("status").innerText = `Loaded uploaded PDF: ${file.name}`;
+}catch(err){
+console.error(err);
+document.getElementById("status").innerText = "Failed to read uploaded PDF.";
+alert("Could not load that PDF.");
+}
 };
 
 reader.readAsArrayBuffer(file);
-
 });
 
+/* LOAD PDF FROM GITHUB PROJECT */
+async function loadSelectedRepoPdf(){
+const path = document.getElementById("repoPdfSelect").value;
+
+if(!path){
+alert("Select a PDF from the dropdown first.");
+return;
+}
+
+document.getElementById("status").innerText = `Loading ${path}...`;
+
+try{
+const response = await fetch(path);
+
+if(!response.ok){
+throw new Error("HTTP " + response.status);
+}
+
+const arrayBuffer = await response.arrayBuffer();
+const typedarray = new Uint8Array(arrayBuffer);
+const fullText = await extractPdfText(typedarray);
+
+parseText(fullText);
+document.getElementById("status").innerText = `Loaded repo PDF: ${path}`;
+}catch(err){
+console.error(err);
+document.getElementById("status").innerText = `Failed to load ${path}`;
+alert("Could not load the selected PDF from your GitHub project.");
+}
+}
+
 /* PARSE */
-
 function parseText(text){
-
 qaPairs = [];
 
 let sections = text.split("QUESTION:");
 
-sections.forEach(section=>{
-
-if(section.trim()=="") return;
+sections.forEach(section => {
+if(section.trim() === "") return;
 
 let parts = section.split("ANSWER:");
-if(parts.length<2) return;
+if(parts.length < 2) return;
 
 let question = parts[0].trim();
 let answer = parts[1].trim();
 
-qaPairs.push({question,answer});
-
+qaPairs.push({question, answer});
 });
 
 alert("Loaded " + qaPairs.length + " questions!");
-
 }
 
 /* ASK QUESTION */
-
 function askQuestion(){
-
-if(qaPairs.length===0){
-alert("Upload your PDF first!");
+if(qaPairs.length === 0){
+alert("Upload or load a PDF first!");
 return;
 }
 
-let rand = Math.floor(Math.random()*qaPairs.length);
+let rand = Math.floor(Math.random() * qaPairs.length);
 current = qaPairs[rand];
 
-document.getElementById("question").innerText =
-current.question;
-
+document.getElementById("question").innerText = current.question;
 document.getElementById("answer").innerText = "";
 
-answerLines =
-current.answer.split("\n").filter(l => l.trim() !== "");
-
+answerLines = current.answer.split("\n").filter(l => l.trim() !== "");
 lineIndex = 0;
 
 if(!document.getElementById("questionMute").checked){
 speakSpanish(current.question);
 }
-
 }
 
 /* REPEAT QUESTION */
-
 function repeatQuestion(){
-
 if(!current) return;
 
 if(!document.getElementById("questionMute").checked){
 speakSpanish(current.question);
 }
-
 }
 
 /* SHOW FULL ANSWER */
-
 function showFullAnswer(){
-
 if(!current) return;
-
-document.getElementById("answer").innerText =
-current.answer;
-
+document.getElementById("answer").innerText = current.answer;
 }
 
 /* NEXT LINE */
-
 function showNextLine(){
-
 if(!current) return;
 
 if(lineIndex < answerLines.length){
-
 let line = answerLines[lineIndex];
-
-document.getElementById("answer").innerText +=
-line + "\n";
-
+document.getElementById("answer").innerText += line + "\n";
 lineIndex++;
 
 if(!document.getElementById("answerMute").checked){
 speakSpanish(line);
 }
-
 }
-
 }
-
 </script>
 
 </body>
