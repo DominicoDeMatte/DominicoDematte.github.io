@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Neon Runner</title>
+
+<style>
+    *{
+        margin:0;
+        padding:0;
+        box-sizing:border-box;
+        font-family:Arial, sans-serif;
+    }
+
+    body{
+        overflow:hidden;
+        background:black;
+        touch-action:none;
+    }
+
+    canvas{
+        display:block;
+        background:
+            linear-gradient(
+                to bottom,
+                #001100 0%,
+                #000000 100%
+            );
+    }
+
+    #score{
+        position:absolute;
+        top:20px;
+        left:20px;
+        color:#00ff66;
+        font-size:28px;
+        font-weight:bold;
+        text-shadow:0 0 10px #00ff66;
+    }
+
+    #gameOver{
+        position:absolute;
+        top:50%;
+        left:50%;
+        transform:translate(-50%, -50%);
+        color:#00ff66;
+        text-align:center;
+        display:none;
+    }
+
+    #gameOver h1{
+        font-size:60px;
+        margin-bottom:20px;
+    }
+
+    #gameOver button{
+        padding:15px 30px;
+        font-size:20px;
+        border:none;
+        background:#00ff66;
+        color:black;
+        cursor:pointer;
+        border-radius:10px;
+        font-weight:bold;
+    }
+</style>
+</head>
+
+<body>
+
+<div id="score">0</div>
+
+<div id="gameOver">
+    <h1>GAME OVER</h1>
+    <button onclick="restartGame()">Restart</button>
+</div>
+
+<canvas id="game"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const lanes = [
+    canvas.width * 0.3,
+    canvas.width * 0.5,
+    canvas.width * 0.7
+];
+
+let currentLane = 1;
+
+const player = {
+    x: lanes[currentLane],
+    y: canvas.height - 180,
+    width: 60,
+    height: 90,
+    color: "#00ff66"
+};
+
+let obstacles = [];
+let score = 0;
+let speed = 8;
+let gameRunning = true;
+
+function spawnObstacle(){
+    const lane = Math.floor(Math.random() * 3);
+
+    obstacles.push({
+        x: lanes[lane] - 30,
+        y: -120,
+        width: 60,
+        height: 120,
+        color:"#00aa44"
+    });
+}
+
+setInterval(() => {
+    if(gameRunning){
+        spawnObstacle();
+    }
+}, 900);
+
+function drawPlayer(){
+    ctx.fillStyle = player.color;
+
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = "#00ff66";
+
+    ctx.fillRect(
+        player.x - player.width/2,
+        player.y,
+        player.width,
+        player.height
+    );
+
+    ctx.shadowBlur = 0;
+}
+
+function drawObstacles(){
+    obstacles.forEach(obstacle => {
+        ctx.fillStyle = obstacle.color;
+
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = "#00ff66";
+
+        ctx.fillRect(
+            obstacle.x,
+            obstacle.y,
+            obstacle.width,
+            obstacle.height
+        );
+
+        ctx.shadowBlur = 0;
+    });
+}
+
+function drawRoad(){
+    ctx.strokeStyle = "#00ff66";
+    ctx.lineWidth = 5;
+
+    ctx.beginPath();
+    ctx.moveTo(canvas.width * 0.4, 0);
+    ctx.lineTo(canvas.width * 0.4, canvas.height);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(canvas.width * 0.6, 0);
+    ctx.lineTo(canvas.width * 0.6, canvas.height);
+    ctx.stroke();
+}
+
+function update(){
+    if(!gameRunning) return;
+
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    drawRoad();
+
+    obstacles.forEach((obstacle, index) => {
+        obstacle.y += speed;
+
+        if(obstacle.y > canvas.height){
+            obstacles.splice(index,1);
+            score++;
+            document.getElementById("score").innerText = score;
+        }
+
+        // collision
+        if(
+            player.x - player.width/2 < obstacle.x + obstacle.width &&
+            player.x + player.width/2 > obstacle.x &&
+            player.y < obstacle.y + obstacle.height &&
+            player.y + player.height > obstacle.y
+        ){
+            gameOver();
+        }
+    });
+
+    drawPlayer();
+    drawObstacles();
+
+    requestAnimationFrame(update);
+}
+
+function moveLeft(){
+    if(currentLane > 0){
+        currentLane--;
+        player.x = lanes[currentLane];
+    }
+}
+
+function moveRight(){
+    if(currentLane < 2){
+        currentLane++;
+        player.x = lanes[currentLane];
+    }
+}
+
+// keyboard
+document.addEventListener("keydown", e => {
+    if(e.key === "ArrowLeft"){
+        moveLeft();
+    }
+
+    if(e.key === "ArrowRight"){
+        moveRight();
+    }
+});
+
+// swipe controls
+let startX = 0;
+
+canvas.addEventListener("touchstart", e => {
+    startX = e.touches[0].clientX;
+});
+
+canvas.addEventListener("touchend", e => {
+    let endX = e.changedTouches[0].clientX;
+    let diff = endX - startX;
+
+    if(diff > 50){
+        moveRight();
+    }
+    else if(diff < -50){
+        moveLeft();
+    }
+});
+
+function gameOver(){
+    gameRunning = false;
+    document.getElementById("gameOver").style.display = "block";
+}
+
+function restartGame(){
+    obstacles = [];
+    score = 0;
+    speed = 8;
+    currentLane = 1;
+    player.x = lanes[currentLane];
+
+    document.getElementById("score").innerText = "0";
+    document.getElementById("gameOver").style.display = "none";
+
+    gameRunning = true;
+    update();
+}
+
+update();
+
+window.addEventListener("resize", () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+});
+</script>
+
+</body>
+</html>
