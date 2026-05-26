@@ -12,13 +12,11 @@
         box-sizing:border-box;
         font-family:Arial, sans-serif;
     }
-
     body{
         overflow:hidden;
         background:black;
         touch-action:none;
     }
-
     canvas{
         display:block;
         background:
@@ -28,7 +26,6 @@
                 #000000 100%
             );
     }
-
     #score{
         position:absolute;
         top:20px;
@@ -38,7 +35,6 @@
         font-weight:bold;
         text-shadow:0 0 10px #00ff66;
     }
-
     #gameOver{
         position:absolute;
         top:50%;
@@ -48,12 +44,10 @@
         text-align:center;
         display:none;
     }
-
     #gameOver h1{
         font-size:60px;
         margin-bottom:20px;
     }
-
     #gameOver button{
         padding:15px 30px;
         font-size:20px;
@@ -68,7 +62,6 @@
 </head>
 
 <body>
-
 <div id="score">0</div>
 
 <div id="gameOver">
@@ -86,6 +79,223 @@ canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
 const lanes = [
+    canvas.width * 0.3,
+    canvas.width * 0.5,
+    canvas.width * 0.7
+];
+
+let currentLane = 1;
+
+const player = {
+    x: lanes[currentLane],
+    y: canvas.height - 180,
+    width: 60,
+    height: 90,
+    color: "#00ff66"
+};
+
+let obstacles = [];
+let score = 0;
+
+const baseSpeed = 8;
+let speed = baseSpeed;
+let gameRunning = true;
+
+// SPEED BOOST STATE
+let boosting = false;
+
+function spawnObstacle(){
+    const lane = Math.floor(Math.random() * 3);
+    obstacles.push({
+        x: lanes[lane] - 30,
+        y: -120,
+        width: 60,
+        height: 120,
+        color:"#00aa44"
+    });
+}
+
+setInterval(() => {
+    if(gameRunning){
+        spawnObstacle();
+    }
+}, 900);
+
+function drawPlayer(){
+    ctx.fillStyle = player.color;
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = "#00ff66";
+
+    ctx.fillRect(
+        player.x - player.width/2,
+        player.y,
+        player.width,
+        player.height
+    );
+
+    ctx.shadowBlur = 0;
+}
+
+function drawObstacles(){
+    obstacles.forEach(obstacle => {
+        ctx.fillStyle = obstacle.color;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = "#00ff66";
+
+        ctx.fillRect(
+            obstacle.x,
+            obstacle.y,
+            obstacle.width,
+            obstacle.height
+        );
+
+        ctx.shadowBlur = 0;
+    });
+}
+
+function drawRoad(){
+    ctx.strokeStyle = "#00ff66";
+    ctx.lineWidth = 5;
+
+    ctx.beginPath();
+    ctx.moveTo(canvas.width * 0.4, 0);
+    ctx.lineTo(canvas.width * 0.4, canvas.height);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(canvas.width * 0.6, 0);
+    ctx.lineTo(canvas.width * 0.6, canvas.height);
+    ctx.stroke();
+}
+
+function updateSpeed(){
+    speed = boosting ? baseSpeed * 2 : baseSpeed;
+}
+
+function update(){
+    if(!gameRunning) return;
+
+    updateSpeed();
+
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    drawRoad();
+
+    obstacles.forEach((obstacle, index) => {
+        obstacle.y += speed;
+
+        if(obstacle.y > canvas.height){
+            obstacles.splice(index,1);
+            score++;
+            document.getElementById("score").innerText = score;
+        }
+
+        // collision
+        if(
+            player.x - player.width/2 < obstacle.x + obstacle.width &&
+            player.x + player.width/2 > obstacle.x &&
+            player.y < obstacle.y + obstacle.height &&
+            player.y + player.height > obstacle.y
+        ){
+            gameOver();
+        }
+    });
+
+    drawPlayer();
+    drawObstacles();
+
+    requestAnimationFrame(update);
+}
+
+function moveLeft(){
+    if(currentLane > 0){
+        currentLane--;
+        player.x = lanes[currentLane];
+    }
+}
+
+function moveRight(){
+    if(currentLane < 2){
+        currentLane++;
+        player.x = lanes[currentLane];
+    }
+}
+
+// keyboard
+document.addEventListener("keydown", e => {
+    if(e.key === "ArrowLeft") moveLeft();
+    if(e.key === "ArrowRight") moveRight();
+});
+
+// SWIPE CONTROLS
+let startX = 0;
+let startY = 0;
+
+canvas.addEventListener("touchstart", e => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    boosting = false;
+});
+
+canvas.addEventListener("touchmove", e => {
+    let currentX = e.touches[0].clientX;
+    let currentY = e.touches[0].clientY;
+
+    let diffX = currentX - startX;
+    let diffY = currentY - startY;
+
+    // vertical swipe up = boost
+    if(diffY < -30){
+        boosting = true;
+    }
+
+    // horizontal lane swipe (only trigger if more horizontal than vertical)
+    if(Math.abs(diffX) > 50 && Math.abs(diffX) > Math.abs(diffY)){
+        if(diffX > 0){
+            moveRight();
+        } else {
+            moveLeft();
+        }
+        startX = currentX; // prevent repeat spam
+        startY = currentY;
+    }
+});
+
+canvas.addEventListener("touchend", () => {
+    boosting = false;
+});
+
+function gameOver(){
+    gameRunning = false;
+    document.getElementById("gameOver").style.display = "block";
+}
+
+function restartGame(){
+    obstacles = [];
+    score = 0;
+    currentLane = 1;
+    player.x = lanes[currentLane];
+
+    boosting = false;
+    speed = baseSpeed;
+
+    document.getElementById("score").innerText = "0";
+    document.getElementById("gameOver").style.display = "none";
+
+    gameRunning = true;
+    update();
+}
+
+update();
+
+window.addEventListener("resize", () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+});
+</script>
+
+</body>
+</html>const lanes = [
     canvas.width * 0.3,
     canvas.width * 0.5,
     canvas.width * 0.7
